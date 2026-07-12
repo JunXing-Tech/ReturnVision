@@ -1,0 +1,23 @@
+# Maven
+returnvision-backend/target/
+
+# Node
+returnvision-frontend/node_modules/
+
+# 日志
+returnvision-backend/logs/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+
+# 环境变量
+.env
+*.env
+
+# 系统文件
+.DS_Store
+Thumbs.db
