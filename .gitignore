@@ -18,6 +18,9 @@ returnvision-backend/logs/
 .env
 *.env
 
+# 本地配置（含密码，不提交）
+returnvision-backend/src/main/resources/application-local.yml
+
 # 系统文件
 .DS_Store
 Thumbs.db

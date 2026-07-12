@@ -3,16 +3,19 @@ server:
   port: 8080
 
 spring:
-  # 步骤1骨架阶段：暂不连接数据库，步骤2实现数据库时移除以下排除配置
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
-      - com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration
+  profiles:
+    active: local
   datasource:
-    url: jdbc:mysql://localhost:3306/return_ocr?useSSL=false&serverTimezone=Asia/Shanghai&createDatabaseIfNotExist=true
-    username: ${MYSQL_USER:root}
+    url: jdbc:mysql://101.96.211.131:3306/return_ocr?useSSL=false&serverTimezone=Asia/Shanghai&createDatabaseIfNotExist=true
+    username: ${MYSQL_USER:return_ocr}
     password: ${MYSQL_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
+  # 启动时自动执行建表脚本
+  sql:
+    init:
+      mode: always
+      continue-on-error: true
+      schema-locations: classpath:schema.sql
 
 mybatis-plus:
   configuration:
