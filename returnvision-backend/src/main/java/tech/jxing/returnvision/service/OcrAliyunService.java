@@ -55,7 +55,7 @@ public class OcrAliyunService {
             Config config = new Config()
                     .setAccessKeyId(accessKeyId)
                     .setAccessKeySecret(accessKeySecret);
-            config.endpoint = "ocr-api.cn-beijing.aliyuncs.com";
+            config.endpoint = "ocr-api.cn-hangzhou.aliyuncs.com";
             client = new Client(config);
             log.info("[阿里云OCR] 客户端初始化完成");
         } catch (Exception e) {
