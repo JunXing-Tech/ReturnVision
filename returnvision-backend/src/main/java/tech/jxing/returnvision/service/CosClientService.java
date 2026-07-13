@@ -9,7 +9,7 @@ import com.qcloud.cos.exception.CosServiceException;
 import com.qcloud.cos.model.ObjectMetadata;
 import com.qcloud.cos.model.PutObjectRequest;
 import com.qcloud.cos.region.Region;
-import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -28,40 +28,49 @@ import java.io.ByteArrayInputStream;
 @Slf4j
 public class CosClientService {
 
-    @Value("${cos.region}")
-    private String cosRegion;
-
-    @Value("${cos.secret-id}")
-    private String cosSecretId;
-
-    @Value("${cos.secret-key}")
-    private String cosSecretKey;
-
-    @Value("${cos.bucket}")
-    private String cosBucket;
-
-    private COSClient cosClient;
+    private final String cosRegion;
+    private final String cosBucket;
+    private final COSClient cosClient;
 
     /**
-     * 初始化COS客户端
+     * 构造器注入COS配置，并初始化COSClient
      *
-     * 实现步骤：
-     *   1. 检查COS凭证是否配置
-     *   2. 创建COSClient实例
+     * @param cosRegion    COS区域
+     * @param cosSecretId  COS SecretId
+     * @param cosSecretKey COS SecretKey
+     * @param cosBucket    COS Bucket名
      */
-    @PostConstruct
-    public void init() {
-        // 步骤1：检查COS凭证是否配置
+    public CosClientService(
+            @Value("${cos.region}") String cosRegion,
+            @Value("${cos.secret-id}") String cosSecretId,
+            @Value("${cos.secret-key}") String cosSecretKey,
+            @Value("${cos.bucket}") String cosBucket) {
+        this.cosRegion = cosRegion;
+        this.cosBucket = cosBucket;
+
+        // 凭证未配置时优雅降级
         if (cosSecretId == null || cosSecretId.isEmpty()
                 || cosSecretKey == null || cosSecretKey.isEmpty()) {
             log.warn("[COS] 凭证未配置，COS上传功能不可用。请设置 COS_SECRET_ID 和 COS_SECRET_KEY 环境变量");
+            this.cosClient = null;
             return;
         }
-        // 步骤2：创建COSClient实例
+
         COSCredentials cred = new BasicCOSCredentials(cosSecretId, cosSecretKey);
         ClientConfig clientConfig = new ClientConfig(new Region(cosRegion));
         this.cosClient = new COSClient(cred, clientConfig);
         log.info("[COS] 客户端初始化完成，region={}, bucket={}", cosRegion, cosBucket);
+    }
+
+    /**
+     * 销毁COS客户端，释放资源
+     */
+    @PreDestroy
+    public void destroy() {
+        if (cosClient != null) {
+            cosClient.shutdown();
+            log.info("[COS] 客户端已关闭");
+        }
     }
 
     /**
@@ -89,6 +98,9 @@ public class CosClientService {
         String key = "return-waybills/" + filename;
         ObjectMetadata metadata = new ObjectMetadata();
         metadata.setContentLength(imageBytes.length);
+        // 根据文件扩展名设置Content-Type
+        String contentType = filename.toLowerCase().endsWith(".png") ? "image/png" : "image/jpeg";
+        metadata.setContentType(contentType);
         ByteArrayInputStream inputStream = new ByteArrayInputStream(imageBytes);
 
         try {
