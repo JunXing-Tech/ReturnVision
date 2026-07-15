@@ -7,7 +7,9 @@ CREATE TABLE IF NOT EXISTS return_records (
     rec_address     TEXT,                           -- 收件人地址
     sender_name     VARCHAR(50),                    -- 寄件人姓名
     sender_phone    VARCHAR(20),                    -- 寄件人电话
+    sender_address  TEXT,                           -- 寄件人地址
     express_company VARCHAR(30),                    -- 快递公司
+    goods           VARCHAR(100),                   -- 托寄物
     return_date     DATE,                           -- 退货日期
     status          VARCHAR(20) DEFAULT 'pending',  -- 状态：pending/confirmed/synced/failed
     ocr_engine      VARCHAR(20),                    -- 识别引擎：zhipu/aliyun/cross_validated/manual
@@ -25,6 +27,10 @@ CREATE TABLE IF NOT EXISTS return_records (
 
 CREATE INDEX idx_status ON return_records(status);       -- 按状态筛选（待确认列表）
 CREATE INDEX idx_date ON return_records(return_date);    -- 按日期查询
+
+-- 增量字段（已存在表时添加新列，continue-on-error忽略重复列错误）
+ALTER TABLE return_records ADD COLUMN sender_address TEXT COMMENT '寄件人地址';
+ALTER TABLE return_records ADD COLUMN goods VARCHAR(100) COMMENT '托寄物';
 
 -- OCR识别日志表（识别监控）
 CREATE TABLE IF NOT EXISTS ocr_log (

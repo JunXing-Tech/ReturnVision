@@ -96,7 +96,9 @@ public class FeishuService {
             fields.put("收件人地址", recordData.getOrDefault("rec_address", ""));
             fields.put("寄件人姓名", recordData.getOrDefault("sender_name", ""));
             fields.put("寄件人电话", recordData.getOrDefault("sender_phone", ""));
+            fields.put("寄件人地址", recordData.getOrDefault("sender_address", ""));
             fields.put("快递公司", recordData.getOrDefault("express_company", ""));
+            fields.put("托寄物", recordData.getOrDefault("goods", ""));
             fields.put("退货原因", recordData.getOrDefault("return_reason", ""));
             fields.put("退货分类", recordData.getOrDefault("return_category", ""));
             fields.put("图片链接", Map.of("link", imageUrl, "text", "查看图片"));

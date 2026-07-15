@@ -36,7 +36,7 @@ public class OcrCrossValidatorService {
     /** 交叉验证的字段列表 */
     private static final List<String> FIELDS = Arrays.asList(
             "waybill_no", "rec_name", "rec_phone", "rec_address",
-            "sender_name", "sender_phone", "express_company"
+            "sender_name", "sender_phone", "sender_address", "express_company", "goods"
     );
 
     /** 阿里云置信度仲裁阈值：≥80 优先阿里云 */

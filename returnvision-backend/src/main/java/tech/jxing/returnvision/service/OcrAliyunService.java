@@ -103,7 +103,9 @@ public class OcrAliyunService {
             result.put("rec_address", data.getOrDefault("rec_address", ""));
             result.put("sender_name", data.getOrDefault("sender_name", ""));
             result.put("sender_phone", data.getOrDefault("sender_phone", ""));
+            result.put("sender_address", data.getOrDefault("sender_address", ""));
             result.put("express_company", data.getOrDefault("express_company", ""));
+            result.put("goods", data.getOrDefault("goods", ""));
 
             // 阿里云特有：逐字段置信度（从 prism_keyValueInfo 解析，格式为 0-100）
             Map<String, Object> confidence = new HashMap<>();

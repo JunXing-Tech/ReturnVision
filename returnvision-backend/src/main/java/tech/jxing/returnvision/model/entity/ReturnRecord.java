@@ -42,8 +42,14 @@ public class ReturnRecord {
     @TableField("sender_phone")
     private String senderPhone;            // 寄件人电话
 
+    @TableField("sender_address")
+    private String senderAddress;          // 寄件人地址
+
     @TableField("express_company")
     private String expressCompany;         // 快递公司
+
+    @TableField("goods")
+    private String goods;                  // 托寄物
 
     @TableField("return_date")
     private LocalDate returnDate;          // 退货日期

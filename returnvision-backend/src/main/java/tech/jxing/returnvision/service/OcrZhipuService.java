@@ -38,7 +38,7 @@ public class OcrZhipuService {
     /** 字段提取 prompt */
     private static final String EXTRACT_PROMPT = """
             你是快递面单信息提取助手。请从以下OCR识别文本中提取快递面单信息，返回JSON格式（不要返回其他内容）：
-            {"waybill_no":"运单号","rec_name":"收件人姓名","rec_phone":"收件人电话","rec_address":"收件人地址","sender_name":"寄件人姓名","sender_phone":"寄件人电话","express_company":"快递公司"}
+            {"waybill_no":"运单号","rec_name":"收件人姓名","rec_phone":"收件人电话","rec_address":"收件人地址","sender_name":"寄件人姓名","sender_phone":"寄件人电话","sender_address":"寄件人地址","express_company":"快递公司","goods":"托寄物"}
             找不到的字段返回空字符串。只返回JSON，不要有任何其他文字。""";
 
     /**
