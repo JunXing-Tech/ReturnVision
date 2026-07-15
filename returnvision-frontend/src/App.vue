@@ -29,7 +29,16 @@
     <!-- 主内容区 -->
     <main class="app-main">
       <div class="main-inner">
-        <UploadPanel v-if="activeTab === 'upload'" />
+        <HomePanel
+          v-if="activeTab === 'home'"
+          @uploaded="handleUploaded"
+        />
+        <ProcessPanel
+          v-if="activeTab === 'process'"
+          :result="uploadResult"
+          @confirmed="handleConfirmed"
+          @reset="handleReset"
+        />
         <RecordsPanel v-if="activeTab === 'records'" />
       </div>
     </main>
@@ -38,15 +47,38 @@
 
 <script setup>
 import { ref, markRaw } from 'vue';
-import { Box, UploadFilled, Document } from '@element-plus/icons-vue';
-import UploadPanel from './components/UploadPanel.vue';
+import { ElMessage } from 'element-plus';
+import { Box, House, Timer, Document } from '@element-plus/icons-vue';
+import HomePanel from './components/HomePanel.vue';
+import ProcessPanel from './components/ProcessPanel.vue';
 import RecordsPanel from './components/RecordsPanel.vue';
 
-const activeTab = ref('upload');
+const activeTab = ref('home');
+const uploadResult = ref(null);
 const tabs = [
-  { name: 'upload', label: '上传识别', icon: markRaw(UploadFilled) },
+  { name: 'home', label: '主页', icon: markRaw(House) },
+  { name: 'process', label: '流程展示', icon: markRaw(Timer) },
   { name: 'records', label: '记录列表', icon: markRaw(Document) },
 ];
+
+// HomePanel 上传成功后，保存结果并切换到流程展示页
+const handleUploaded = (result) => {
+  uploadResult.value = result;
+  activeTab.value = 'process';
+};
+
+// ProcessPanel 确认写入飞书成功后，提示并跳转到记录列表
+const handleConfirmed = () => {
+  uploadResult.value = null;
+  activeTab.value = 'records';
+  ElMessage.success('已写入飞书多维表格');
+};
+
+// ProcessPanel 重新上传，清空结果并返回主页
+const handleReset = () => {
+  uploadResult.value = null;
+  activeTab.value = 'home';
+};
 </script>
 
 <style>
@@ -68,7 +100,7 @@ const tabs = [
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
-  font-family: "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+  font-family: system-ui, "Microsoft YaHei", -apple-system, sans-serif;
   background: var(--rv-bg);
   color: #1f2937;
   -webkit-font-smoothing: antialiased;

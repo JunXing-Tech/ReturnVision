@@ -15,6 +15,7 @@
           @change="handleFilterChange"
           style="width: 150px"
         >
+          <el-option label="全部" value="" />
           <el-option label="待确认" value="pending" />
           <el-option label="已确认" value="confirmed" />
           <el-option label="已同步" value="synced" />
@@ -61,6 +62,11 @@
             <el-tag :type="statusTagType(row.status)" effect="light" size="small" round>
               {{ statusLabel(row.status) }}
             </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="创建时间" width="160" align="center" fixed="right">
+          <template #default="{ row }">
+            <span class="time-text">{{ formatTime(row.createdAt) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="100" align="center" fixed="right">
@@ -157,6 +163,21 @@ const statusLabel = (s) => {
   return map[s] || s;
 };
 
+// 格式化创建时间，兼容 ISO 字符串和数组格式
+const formatTime = (time) => {
+  if (!time) return '-';
+  // 兼容 Jackson 数组格式 [2026, 7, 15, 12, 30, 0]
+  if (Array.isArray(time)) {
+    const [y, m, d, h = 0, min = 0] = time;
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${y}-${pad(m)}-${pad(d)} ${pad(h)}:${pad(min)}`;
+  }
+  const date = new Date(time);
+  if (isNaN(date.getTime())) return String(time);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
 onMounted(() => loadRecords());
 </script>
 
@@ -232,6 +253,8 @@ onMounted(() => loadRecords());
 }
 
 .text-muted { color: #cbd5e1; font-size: 13px; }
+
+.time-text { font-size: 13px; color: #64748b; font-variant-numeric: tabular-nums; }
 
 /* 分页 */
 .pagination-bar {
