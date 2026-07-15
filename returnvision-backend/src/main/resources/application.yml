@@ -15,6 +15,12 @@ spring:
     username: ${MYSQL_USER:return_ocr}
     password: ${MYSQL_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      connection-timeout: 30000
+      max-lifetime: 120000
+      keepalive-time: 30000
+      connection-test-query: SELECT 1
   # 启动时自动执行建表脚本
   sql:
     init:
