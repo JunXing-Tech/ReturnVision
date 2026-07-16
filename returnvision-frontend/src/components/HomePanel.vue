@@ -1,6 +1,5 @@
 <template>
   <div class="home-panel">
-    <!-- 上传区域在最顶部 -->
     <div class="upload-section">
       <el-upload
         drag
@@ -23,14 +22,12 @@
       </el-upload>
     </div>
 
-    <!-- 项目介绍 -->
     <div class="intro-section">
       <div class="intro-header">
         <span class="intro-badge">ReturnVision</span>
         <h1 class="intro-title">退运智录</h1>
-        <p class="intro-subtitle">拍照识别快递面单 → 双引擎交叉验证 → DeepSeek分析 → 飞书写入</p>
+        <p class="intro-subtitle">拍照识别快递面单 -> 双引擎交叉验证 -> DeepSeek分析 -> 飞书写入</p>
       </div>
-
       <div class="features-grid">
         <div v-for="f in features" :key="f.title" class="feature-card">
           <div class="feature-icon" :style="{ background: f.bg }">{{ f.icon }}</div>
@@ -47,8 +44,9 @@ import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { UploadFilled, Loading } from '@element-plus/icons-vue';
 import api from '../api';
+import { useAppState } from '../composables/useAppState';
 
-const emit = defineEmits(['uploaded']);
+const { setResult, goToTab } = useAppState();
 const loading = ref(false);
 
 const features = [
@@ -64,7 +62,8 @@ const handleUpload = async (options) => {
     const res = await api.upload(options.file);
     if (res.data.code === 0) {
       ElMessage.success('识别完成');
-      emit('uploaded', res.data.data);
+      setResult(res.data.data);
+      goToTab('process');
     } else {
       ElMessage.error(res.data.msg);
     }
@@ -78,12 +77,7 @@ const handleUpload = async (options) => {
 
 <style scoped>
 .home-panel { display: flex; flex-direction: column; gap: 32px; }
-
-/* Upload */
-.upload-section :deep(.el-upload-dragger) {
-  width: 100%; border: 2px dashed var(--color-border); border-radius: var(--radius-xl);
-  padding: 48px 24px; transition: var(--transition); background: #fff;
-}
+.upload-section :deep(.el-upload-dragger) { width: 100%; border: 2px dashed var(--color-border); border-radius: var(--radius-xl); padding: 48px 24px; transition: var(--transition); background: #fff; }
 .upload-section :deep(.el-upload-dragger:hover) { border-color: var(--color-primary); }
 .upload-content { text-align: center; }
 .upload-title { font-size: 16px; font-weight: 600; color: var(--color-text); margin: 12px 0 4px; }
@@ -91,36 +85,16 @@ const handleUpload = async (options) => {
 .loading-content { text-align: center; }
 .loading-text { font-size: 15px; font-weight: 500; color: var(--color-primary); margin: 12px 0 4px; }
 .loading-hint { font-size: 12px; color: var(--color-text-muted); }
-
-/* Intro */
 .intro-header { text-align: center; margin-bottom: 28px; }
-.intro-badge {
-  display: inline-block; padding: 4px 12px; border-radius: 999px;
-  background: var(--color-bg-secondary); color: var(--color-primary);
-  font-size: 12px; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 12px;
-}
+.intro-badge { display: inline-block; padding: 4px 12px; border-radius: 999px; background: var(--color-bg-secondary); color: var(--color-primary); font-size: 12px; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 12px; }
 .intro-title { font-size: 32px; font-weight: 800; color: var(--color-text); margin-bottom: 8px; }
 .intro-subtitle { font-size: 15px; color: var(--color-text-secondary); }
-
-.features-grid {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
-}
-.feature-card {
-  background: #fff; border-radius: var(--radius-lg); padding: 24px 20px;
-  box-shadow: var(--shadow-sm); transition: var(--transition); border: 1px solid var(--color-border);
-}
+.features-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.feature-card { background: #fff; border-radius: var(--radius-lg); padding: 24px 20px; box-shadow: var(--shadow-sm); transition: var(--transition); border: 1px solid var(--color-border); }
 .feature-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
-.feature-icon {
-  width: 44px; height: 44px; border-radius: var(--radius-md);
-  display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 12px;
-}
+.feature-icon { width: 44px; height: 44px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 12px; }
 .feature-card h3 { font-size: 15px; font-weight: 600; color: var(--color-text); margin-bottom: 6px; }
 .feature-card p { font-size: 13px; color: var(--color-text-secondary); line-height: 1.5; }
-
 @media (max-width: 992px) { .features-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 768px) {
-  .features-grid { grid-template-columns: 1fr; }
-  .intro-title { font-size: 24px; }
-  .upload-section :deep(.el-upload-dragger) { padding: 32px 16px; }
-}
+@media (max-width: 768px) { .features-grid { grid-template-columns: 1fr; } .intro-title { font-size: 24px; } .upload-section :deep(.el-upload-dragger) { padding: 32px 16px; } }
 </style>
