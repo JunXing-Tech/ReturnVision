@@ -9,6 +9,7 @@ public class BizException extends RuntimeException {
     private final int code;
 
     public BizException(int code, String msg) {
+        // 调用父类构造方法，记录异常信息，并将错误码和异常信息存储在实例变量中
         super(msg);
         this.code = code;
     }

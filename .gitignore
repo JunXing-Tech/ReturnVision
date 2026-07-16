@@ -24,3 +24,13 @@ returnvision-backend/src/main/resources/application-local.yml
 # 系统文件
 .DS_Store
 Thumbs.db
+
+# 构建产物
+returnvision-frontend/dist/
+
+# 设计文件
+returnvision-redesign/
+*.design
+
+# 临时测试文件
+test-waybill.html
