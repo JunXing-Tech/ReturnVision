@@ -27,6 +27,7 @@ Thumbs.db
 
 # 构建产物
 returnvision-frontend/dist/
+*.jar
 
 # 设计文件
 returnvision-redesign/

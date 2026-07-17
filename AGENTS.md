@@ -21,6 +21,14 @@ ReturnVision/                        # 项目根目录
 ├── returnvision-frontend/           # 前端（Vue 3 + Vite）
 │   ├── package.json
 │   └── src/
+├── deploy/                          # 线上部署配置（Docker Compose + Nginx + 脚本）
+│   ├── docker-compose.yml           # 容器编排：backend（内网）+ frontend（HTTPS 自动签发）
+│   ├── .env.example                 # 环境变量模板（密钥占位，.env 本身不提交 git）
+│   ├── deploy.sh                    # 服务器一键部署脚本
+│   ├── returnvision-backend/
+│   │   └── Dockerfile               # JDK21 JRE 镜像
+│   └── nginx/user_conf.d/
+│       └── default.conf             # Nginx 静态托管 + /api 反代 + SSE 配置
 ├── docs/                            # 设计文档目录（所有方案文档）
 │   ├── 00-开发执行指南.md
 │   ├── 基础框架规范.md
@@ -33,11 +41,14 @@ ReturnVision/                        # 项目根目录
 **技术栈**：
 - 后端：Java 21 + Spring Boot 3.x + MyBatis-Plus + Maven
 - 前端：Vue 3 + Vite
-- 数据库：MySQL 8.0
+- 数据库：MySQL 8.0（宿主机系统级安装，不放入 Docker）
 - 图片存储：腾讯云 COS
 - OCR引擎：智谱OCR（引擎A）+ 阿里云面单OCR（引擎B）
 - LLM：DeepSeek V4 Flash
 - 飞书：lark-oapi Java SDK + Webhook 机器人
+- 部署：Docker Compose（backend 容器内网 + frontend 容器对外）
+- Web 服务器：Nginx（frontend 容器内置，静态托管 + /api 反向代理）
+- HTTPS：Let's Encrypt 自动签发与续期（jonasal/nginx-certbot 镜像内置 Certbot）
 
 ---
 
