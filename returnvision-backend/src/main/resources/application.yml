@@ -1,6 +1,10 @@
 # 退运智录后端配置
 server:
   port: 8080
+  # 信任 Nginx 反代转发过来的 X-Forwarded-Proto/Host/Port 头
+  # 否则 Spring 拿到的 scheme 永远是 http、端口是 8080，
+  # 与浏览器 Origin(https:443) 不一致，会被误判为跨域请求并触发 CORS 403
+  forward-headers-strategy: native
 
 spring:
   profiles:

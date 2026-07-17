@@ -118,7 +118,14 @@ ReturnVision/
 │       ├── components/                      # 业务组件
 │       └── composables/                     # 组合式函数
 │
-├── docs/                            # 设计文档（00-09 + 基础规范）
+├── deploy/                          # 线上部署配置（Docker Compose + Nginx + 脚本）
+│   ├── docker-compose.yml           # 容器编排：backend（内网）+ frontend（HTTPS 自动签发）
+│   ├── .env.example                 # 环境变量模板（密钥占位，.env 本身不提交 git）
+│   ├── deploy.sh                    # 服务器一键部署脚本
+│   ├── returnvision-backend/Dockerfile       # JDK21 JRE 镜像
+│   └── nginx/user_conf.d/default.conf       # Nginx 静态托管 + /api 反代 + SSE 配置
+│
+├── docs/                            # 设计文档（00-12 + 基础规范）
 ├── AGENTS.md                        # AI 智能体入口文件
 └── README.md                        # 项目说明（本文件）
 ```
@@ -246,12 +253,12 @@ npm run build
 
 ## API 接口
 
-接口遵循统一响应格式 `ResponseResult<T>`：
+接口遵循统一响应格式 `ResponseResult<T>`（`code=0` 表示成功，字段为 `code/msg/data`）：
 
 ```json
 {
-  "code": 200,
-  "message": "success",
+  "code": 0,
+  "msg": "success",
   "data": { }
 }
 ```
@@ -261,9 +268,12 @@ npm run build
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | GET  | `/` | 健康检查 / 根路径 |
-| POST | `/api/upload` | 上传面单图片并触发识别流程 |
+| POST | `/api/upload` | 上传面单图片并触发识别流程（multipart/form-data） |
+| GET  | `/api/records` | 查询退货记录列表 |
+| POST | `/api/confirm` | 确认退货记录并写入飞书 |
+| GET  | `/api/dashboard/stats` | 仪表盘统计数据 |
 
-接口细节（请求体、响应字段、状态码）请参见 [`docs/06-API接口设计.md`](docs/06-API接口设计.md)。
+> 实际接口以 [`docs/06-API接口设计.md`](docs/06-API接口设计.md) 为准；响应字段定义见 [`docs/基础框架规范.md`](docs/基础框架规范.md) 第一章。
 
 ---
 
@@ -301,7 +311,12 @@ npm run preview
 
 ### 提交规范
 
-提交信息格式：`步骤N：简要描述`（与开发执行指南的检查点对齐）。提交后推送到 `origin/main`。
+提交信息格式：
+
+- 初始开发阶段（对齐 [docs/00-开发执行指南.md](docs/00-开发执行指南.md) 检查点）：`步骤N：简要描述`
+- 后续新增/优化功能（对齐 [docs/11-开发流程规范.md](docs/11-开发流程规范.md)）：`模块/功能：简要描述`
+
+提交后推送到 `origin/main`。回滚统一走 GitHub 版本控制（`git revert` 或回退到上一个 tag）。
 
 ---
 
@@ -322,13 +337,18 @@ npm run preview
 | [docs/07-项目结构与代码规范.md](docs/07-项目结构与代码规范.md) | 目录结构、模块拆分、分阶段交付 | 开发人员 |
 | [docs/08-实施计划与风险.md](docs/08-实施计划与风险.md) | 实施步骤、风险应对、环境依赖 | 项目管理 |
 | [docs/09-技术决策附录.md](docs/09-技术决策附录.md) | 关键技术选型决策汇总 | 技术决策者 |
+| [docs/10-产品演进与功能可行性方案.md](docs/10-产品演进与功能可行性方案.md) | 产品视角缺口诊断、候选功能、4 期演进路线 | 产品 / 项目管理 |
+| [docs/11-开发流程规范.md](docs/11-开发流程规范.md) | 新增/优化功能的影响面评估清单与端到端流程 | AI / 开发者 |
+| [docs/12-前端设计规范.md](docs/12-前端设计规范.md) | 前端技术栈、设计 token、页面脚手架、禁止事项 | 前端开发 |
 
 ### 阅读建议
 
 - **AI 执行开发**：AGENTS.md → 00（按步骤执行，每个检查点暂停）
+- **AI 接到新需求/优化项**：AGENTS.md「新增/优化功能的开发流程」节 → docs/11 → docs/12（前端）
 - **快速了解项目**：01 → 02 → 09
 - **准备开发**：基础框架规范 → 04 → 05 → 06 → 07
 - **评估可行性**：02 → 03 → 08
+- **规划后续迭代**：docs/10（产品演进）→ docs/11（落地流程）
 
 ---
 

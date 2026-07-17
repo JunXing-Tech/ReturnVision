@@ -308,3 +308,65 @@
 - README：v2.0变更说明新增Java改动
 
 ---
+
+## 任务 008：上线部署 + 产品演进 + 开发流程与前端规范
+
+### 任务时间
+2026-07-17
+
+### 任务要求
+1. 设计 Docker 部署方案：本地打包 jar + dist 上传，MySQL 用宿主机系统级，不进 Docker
+2. 以"产品经理"视角审视项目，输出功能演进可行性方案
+3. 制定"新增/优化功能的开发流程"规范与"前端设计规范"
+4. 检查 docs 全部文档 + AGENTS.md + README.md 的一致性，清除冗余
+
+### 关键决策记录
+
+#### 决策1：部署架构 —— 双容器 + 系统级 MySQL
+- **后端容器**：JDK21 JRE，仅通过 Docker 内网 `rv-net` 暴露给前端，不对外开端口
+- **前端容器**：`jonasal/nginx-certbot:5.2.3`，兼任 SSL 终端 + 静态托管 + `/api` 反代
+- **MySQL**：用宿主机已有的远程实例（不放入 Docker），后端直连
+- **HTTPS**：Let's Encrypt 自动签发与续期，证书持久化到 named volume `nginx_secrets`
+
+#### 决策2：SSE 流式上传的关键 Nginx 配置
+- **`proxy_buffering off` + `proxy_cache off` + `chunked_transfer_encoding on`**
+- 理由：前端 `uploadSSE` 用 fetch 读 ReadableStream，Nginx 一旦缓冲会导致前端收不到事件
+
+#### 决策3：环境变量三处同步
+- 新增环境变量必须同步：`application.yml`（占位）+ `deploy/.env.example`（模板）+ `deploy/docker-compose.yml`（注入）
+- 服务器 `.env` 真实值不入 git，由部署方更新
+
+#### 决策4：docs/10 产品演进方案的边界
+- 仅作"候选演进项"清单，不强制立即改代码
+- 6 类缺口：无登录/权限、隐私明文、无报表、无反馈闭环、无运单去重、无监控告警
+- 4 期路线：安全底座 → 数据洞察 → 质量闭环 → 平台化
+
+#### 决策5：开发流程规范拆分两份文档
+- docs/11-开发流程规范.md：8 项影响面评估清单 + 9 步端到端流程 + 文档同步矩阵
+- docs/12-前端设计规范.md：从现有代码提取事实基线（token、`*Panel.vue`、`api.js` 收口、SSE 用 fetch）
+- AGENTS.md 只放精简节 + 入口，避免单文件膨胀
+
+#### 决策6：上线流程不写入 docs/11
+- 部署由用户在服务器侧自行处理（含服务器 AI 辅助），开发流程规范只管到"代码入库 + git push"
+- 回滚统一走 GitHub 版本控制（`git revert` 或回退 tag）
+
+#### 决策7：README 修正
+- 响应字段统一为 `code/msg/data`、`code=0` 成功（与 `ResponseResult` 实际代码一致）
+- 接口列表补全 `/api/records`、`/api/confirm`、`/api/dashboard/stats`
+- 提交规范区分两阶段：初始开发用 `步骤N：...`，后续新增/优化用 `模块/功能：...`
+
+### 产出
+- deploy/docker-compose.yml、deploy/.env.example、deploy/deploy.sh
+- deploy/returnvision-backend/Dockerfile、deploy/nginx/user_conf.d/default.conf
+- docs/10-产品演进与功能可行性方案.md
+- docs/11-开发流程规范.md
+- docs/12-前端设计规范.md
+- AGENTS.md：目录结构补 deploy/、技术栈补部署组件、新增"开发流程"精简节、联系文档表补 3 行
+- README.md：修正响应示例与接口列表、补全项目结构、文档导航表补 3 行、提交规范补两阶段格式
+
+### 待办 / 下一步
+- [ ] 服务器侧执行 deploy.sh 完成首次部署
+- [ ] 验证 HTTPS 证书自动签发
+- [ ] 视业务节奏决定是否启动 docs/10 第 1 期（安全底座：F01 登录 + F02 脱敏）
+
+---
