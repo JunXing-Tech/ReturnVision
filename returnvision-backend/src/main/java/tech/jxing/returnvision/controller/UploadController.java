@@ -131,6 +131,13 @@ public class UploadController {
             // 步骤4：数据校验
             Map<String, Object> validationResult = validatorService.validate(ocrData != null ? ocrData : new HashMap<>());
 
+            // 步骤4.1：OCR 有效数据校验--识别失败时不写库，避免退货记录页出现"失败数据"
+            if (ocrData == null
+                    || (getString(ocrData, "waybill_no").isEmpty() && getString(ocrData, "rec_name").isEmpty())) {
+                log.warn("[上传] 双引擎OCR均未识别出有效数据，不写入数据库，cosUrl={}", cosUrl);
+                throw new BizException(2001, "面单识别失败：未识别出有效运单信息，请重新上传清晰的面单图片");
+            }
+
             // 步骤5：保存到数据库
             ReturnRecord record = buildRecord(ocrData, llmResult, ocrResult, cosUrl, validationResult);
             recordMapper.insert(record);
@@ -227,6 +234,14 @@ public class UploadController {
 
                 // 步骤2.5：数据校验
                 Map<String, Object> validationResult = validatorService.validate(ocrData != null ? ocrData : new HashMap<>());
+
+                // 步骤2.5.1：OCR 有效数据校验--识别失败时不写库，避免退货记录页出现"失败数据"
+                // 判定标准：运单号和收件人姓名均为空，视为双引擎均未识别出有效信息
+                if (ocrData == null
+                        || (getString(ocrData, "waybill_no").isEmpty() && getString(ocrData, "rec_name").isEmpty())) {
+                    log.warn("[SSE上传] 双引擎OCR均未识别出有效数据，不写入数据库，cosUrl={}", cosUrl);
+                    throw new BizException(2001, "面单识别失败：未识别出有效运单信息，请重新上传清晰的面单图片");
+                }
 
                 // 步骤2.6：保存到数据库
                 ReturnRecord record = buildRecord(ocrData, llmResult, ocrResult, cosUrl, validationResult);
@@ -666,6 +681,14 @@ public class UploadController {
 
         // 步骤4：数据校验
         Map<String, Object> validationResult = validatorService.validate(ocrData != null ? ocrData : new HashMap<>());
+
+        // 步骤4.1：OCR 有效数据校验--识别失败时不写库，避免退货记录页出现"失败数据"
+        if (ocrData == null
+                || (getString(ocrData, "waybill_no").isEmpty() && getString(ocrData, "rec_name").isEmpty())) {
+            log.warn("[批量上传] 双引擎OCR均未识别出有效数据，不写入数据库，filename={}, cosUrl={}",
+                    file.getOriginalFilename(), cosUrl);
+            throw new BizException(2001, "面单识别失败：未识别出有效运单信息");
+        }
 
         // 步骤5：保存到数据库
         ReturnRecord record = buildRecord(ocrData, llmResult, ocrResult, cosUrl, validationResult);

@@ -31,6 +31,7 @@ returnvision-frontend/dist/
 
 # 设计文件
 returnvision-redesign/
+returnvision-vercel/
 *.design
 
 # 临时测试文件
