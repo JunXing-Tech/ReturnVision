@@ -70,6 +70,13 @@ feishu:
   table-id: ${FEISHU_TABLE_ID}
   bot-webhook: ${FEISHU_BOT_WEBHOOK}
 
+# 异常监控告警（F12）
+# 业务参数，非密钥；复用 feishu.bot-webhook 发送飞书机器人卡片告警
+alert:
+  enabled: ${ALERT_ENABLED:true}
+  dedup-window-ms: 300000
+  feishu-fail-threshold: 3
+
 logging:
   level:
     root: INFO

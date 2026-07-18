@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tech.jxing.returnvision.common.ResponseResult;
+import tech.jxing.returnvision.common.alert.AlertLevel;
+import tech.jxing.returnvision.common.alert.AlertService;
 import tech.jxing.returnvision.common.exception.BizException;
 import tech.jxing.returnvision.feishu.FeishuService;
 import tech.jxing.returnvision.model.entity.ReturnRecord;
@@ -59,6 +61,7 @@ public class UploadController {
     private final FeishuService feishuService;
     private final ReturnRecordMapper recordMapper;
     private final ObjectMapper objectMapper;
+    private final AlertService alertService;
 
     /** SSE异步处理线程池（守护线程，不阻塞JVM关闭） */
     private final ExecutorService sseExecutor = Executors.newFixedThreadPool(4, r -> {
@@ -73,7 +76,8 @@ public class UploadController {
                             ValidatorService validatorService,
                             FeishuService feishuService,
                             ReturnRecordMapper recordMapper,
-                            ObjectMapper objectMapper) {
+                            ObjectMapper objectMapper,
+                            AlertService alertService) {
         this.cosClientService = cosClientService;
         this.crossValidatorService = crossValidatorService;
         this.llmAnalyzerService = llmAnalyzerService;
@@ -81,6 +85,7 @@ public class UploadController {
         this.feishuService = feishuService;
         this.recordMapper = recordMapper;
         this.objectMapper = objectMapper;
+        this.alertService = alertService;
     }
 
     @PreDestroy
@@ -135,6 +140,10 @@ public class UploadController {
             if (ocrData == null
                     || (getString(ocrData, "waybill_no").isEmpty() && getString(ocrData, "rec_name").isEmpty())) {
                 log.warn("[上传] 双引擎OCR均未识别出有效数据，不写入数据库，cosUrl={}", cosUrl);
+                // F12 埋点：双引擎 OCR 均未识别出有效数据
+                alertService.notify(AlertLevel.WARN, "ocr_dual_fail",
+                        "双引擎OCR均未识别出有效运单信息",
+                        Map.of("cosUrl", cosUrl));
                 throw new BizException(2001, "面单识别失败：未识别出有效运单信息，请重新上传清晰的面单图片");
             }
 
@@ -240,6 +249,10 @@ public class UploadController {
                 if (ocrData == null
                         || (getString(ocrData, "waybill_no").isEmpty() && getString(ocrData, "rec_name").isEmpty())) {
                     log.warn("[SSE上传] 双引擎OCR均未识别出有效数据，不写入数据库，cosUrl={}", cosUrl);
+                    // F12 埋点：双引擎 OCR 均未识别出有效数据
+                    alertService.notify(AlertLevel.WARN, "ocr_dual_fail",
+                            "双引擎OCR均未识别出有效运单信息",
+                            Map.of("cosUrl", cosUrl));
                     throw new BizException(2001, "面单识别失败：未识别出有效运单信息，请重新上传清晰的面单图片");
                 }
 
@@ -687,6 +700,10 @@ public class UploadController {
                 || (getString(ocrData, "waybill_no").isEmpty() && getString(ocrData, "rec_name").isEmpty())) {
             log.warn("[批量上传] 双引擎OCR均未识别出有效数据，不写入数据库，filename={}, cosUrl={}",
                     file.getOriginalFilename(), cosUrl);
+            // F12 埋点：双引擎 OCR 均未识别出有效数据
+            alertService.notify(AlertLevel.WARN, "ocr_dual_fail",
+                    "双引擎OCR均未识别出有效运单信息",
+                    Map.of("cosUrl", cosUrl, "filename", file.getOriginalFilename()));
             throw new BizException(2001, "面单识别失败：未识别出有效运单信息");
         }
 

@@ -9,6 +9,7 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import tech.jxing.returnvision.common.alert.AlertService;
 import tech.jxing.returnvision.common.exception.FeishuApiError;
 
 import java.util.HashMap;
@@ -33,6 +34,7 @@ public class FeishuService {
     private final String tableId;
     private final OkHttpClient httpClient;
     private final ObjectMapper objectMapper;
+    private final AlertService alertService;
 
     private static final String TOKEN_URL = "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal";
     private static final String BITABLE_RECORD_URL = "https://open.feishu.cn/open-apis/bitable/v1/apps/%s/tables/%s/records";
@@ -52,13 +54,15 @@ public class FeishuService {
             @Value("${feishu.app-token}") String appToken,
             @Value("${feishu.table-id}") String tableId,
             OkHttpClient httpClient,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            AlertService alertService) {
         this.appId = appId;
         this.appSecret = appSecret;
         this.appToken = appToken;
         this.tableId = tableId;
         this.httpClient = httpClient;
         this.objectMapper = objectMapper;
+        this.alertService = alertService;
     }
 
     /**
@@ -83,6 +87,8 @@ public class FeishuService {
             log.warn("[飞书] 凭证未配置，跳过飞书写入");
             return null;
         }
+
+        String waybillNo = recordData.getOrDefault("waybill_no", "").toString();
 
         try {
             // 步骤1：获取tenant_access_token
@@ -126,6 +132,8 @@ public class FeishuService {
                 double code = ((Number) result.getOrDefault("code", -1)).doubleValue();
                 if (code != 0) {
                     log.error("[飞书] 写入失败，code={}, msg={}", code, result.get("msg"));
+                    // F12 埋点：飞书 API 返回错误，记入连续失败计数
+                    alertService.recordFeishuFailure("waybill_no=" + waybillNo);
                     throw new FeishuApiError("飞书写入失败：" + result.get("msg"));
                 }
 
@@ -133,6 +141,8 @@ public class FeishuService {
                 Map<String, Object> record = (Map<String, Object>) data.get("record");
                 String recordId = (String) record.get("record_id");
 
+                // F12 埋点：写入成功，重置连续失败计数
+                alertService.resetFeishuFailureCount();
                 log.info("[飞书] 写入成功，record_id={}", recordId);
                 return recordId;
             }
@@ -140,6 +150,8 @@ public class FeishuService {
             throw e;
         } catch (Exception e) {
             log.error("[飞书] 写入异常", e);
+            // F12 埋点：其他异常（网络/序列化等），记入连续失败计数
+            alertService.recordFeishuFailure("waybill_no=" + waybillNo + ", error=" + e.getClass().getSimpleName());
             throw new FeishuApiError("飞书写入异常：" + e.getMessage());
         }
     }

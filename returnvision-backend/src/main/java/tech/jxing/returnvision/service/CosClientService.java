@@ -13,9 +13,12 @@ import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import tech.jxing.returnvision.common.alert.AlertLevel;
+import tech.jxing.returnvision.common.alert.AlertService;
 import tech.jxing.returnvision.common.exception.CosError;
 
 import java.io.ByteArrayInputStream;
+import java.util.Map;
 
 /**
  * 【业务逻辑层】腾讯云COS图片上传服务
@@ -31,6 +34,7 @@ public class CosClientService {
     private final String cosRegion;
     private final String cosBucket;
     private final COSClient cosClient;
+    private final AlertService alertService;
 
     /**
      * 构造器注入COS配置，并初始化COSClient
@@ -39,14 +43,17 @@ public class CosClientService {
      * @param cosSecretId  COS SecretId
      * @param cosSecretKey COS SecretKey
      * @param cosBucket    COS Bucket名
+     * @param alertService 告警服务（F12 埋点）
      */
     public CosClientService(
             @Value("${cos.region}") String cosRegion,
             @Value("${cos.secret-id}") String cosSecretId,
             @Value("${cos.secret-key}") String cosSecretKey,
-            @Value("${cos.bucket}") String cosBucket) {
+            @Value("${cos.bucket}") String cosBucket,
+            AlertService alertService) {
         this.cosRegion = cosRegion;
         this.cosBucket = cosBucket;
+        this.alertService = alertService;
 
         // 凭证未配置时优雅降级
         if (cosSecretId == null || cosSecretId.isEmpty()
@@ -110,9 +117,17 @@ public class CosClientService {
             log.info("[COS] 上传成功，key={}", key);
         } catch (CosServiceException e) {
             log.error("[COS] 上传失败（服务端异常），errorCode={}, msg={}", e.getErrorCode(), e.getMessage());
+            // F12 埋点：COS 服务端异常（如鉴权失败、配额超限）
+            alertService.notify(AlertLevel.ERROR, "cos_upload_fail",
+                    "COS上传失败（服务端）：" + e.getErrorCode(),
+                    Map.of("filename", filename, "key", key));
             throw new CosError("COS上传失败：" + e.getMessage());
         } catch (CosClientException e) {
             log.error("[COS] 上传失败（客户端异常），msg={}", e.getMessage());
+            // F12 埋点：COS 客户端异常（如网络超时、连接拒绝）
+            alertService.notify(AlertLevel.ERROR, "cos_upload_fail",
+                    "COS上传失败（客户端）",
+                    Map.of("filename", filename, "key", key, "error", e.getClass().getSimpleName()));
             throw new CosError("COS上传失败：" + e.getMessage());
         }
 
