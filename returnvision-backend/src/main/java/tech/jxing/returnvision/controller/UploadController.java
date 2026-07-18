@@ -14,6 +14,7 @@ import tech.jxing.returnvision.common.ResponseResult;
 import tech.jxing.returnvision.common.alert.AlertLevel;
 import tech.jxing.returnvision.common.alert.AlertService;
 import tech.jxing.returnvision.common.exception.BizException;
+import tech.jxing.returnvision.common.exception.DuplicateWaybillError;
 import tech.jxing.returnvision.feishu.FeishuService;
 import tech.jxing.returnvision.model.entity.ReturnRecord;
 import tech.jxing.returnvision.model.mapper.ReturnRecordMapper;
@@ -21,6 +22,7 @@ import tech.jxing.returnvision.service.CosClientService;
 import tech.jxing.returnvision.service.LlmAnalyzerService;
 import tech.jxing.returnvision.service.OcrCrossValidatorService;
 import tech.jxing.returnvision.service.ValidatorService;
+import tech.jxing.returnvision.service.WaybillValidator;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -58,6 +60,7 @@ public class UploadController {
     private final OcrCrossValidatorService crossValidatorService;
     private final LlmAnalyzerService llmAnalyzerService;
     private final ValidatorService validatorService;
+    private final WaybillValidator waybillValidator;
     private final FeishuService feishuService;
     private final ReturnRecordMapper recordMapper;
     private final ObjectMapper objectMapper;
@@ -74,6 +77,7 @@ public class UploadController {
                             OcrCrossValidatorService crossValidatorService,
                             LlmAnalyzerService llmAnalyzerService,
                             ValidatorService validatorService,
+                            WaybillValidator waybillValidator,
                             FeishuService feishuService,
                             ReturnRecordMapper recordMapper,
                             ObjectMapper objectMapper,
@@ -82,6 +86,7 @@ public class UploadController {
         this.crossValidatorService = crossValidatorService;
         this.llmAnalyzerService = llmAnalyzerService;
         this.validatorService = validatorService;
+        this.waybillValidator = waybillValidator;
         this.feishuService = feishuService;
         this.recordMapper = recordMapper;
         this.objectMapper = objectMapper;
@@ -146,6 +151,9 @@ public class UploadController {
                         Map.of("cosUrl", cosUrl));
                 throw new BizException(2001, "面单识别失败：未识别出有效运单信息，请重新上传清晰的面单图片");
             }
+
+            // 步骤4.2：F11 运单号去重 + 快递公司格式校验
+            applyDuplicateAndWaybillCheck(ocrData, validationResult);
 
             // 步骤5：保存到数据库
             ReturnRecord record = buildRecord(ocrData, llmResult, ocrResult, cosUrl, validationResult);
@@ -255,6 +263,9 @@ public class UploadController {
                             Map.of("cosUrl", cosUrl));
                     throw new BizException(2001, "面单识别失败：未识别出有效运单信息，请重新上传清晰的面单图片");
                 }
+
+                // 步骤2.5.2：F11 运单号去重 + 快递公司格式校验
+                applyDuplicateAndWaybillCheck(ocrData, validationResult);
 
                 // 步骤2.6：保存到数据库
                 ReturnRecord record = buildRecord(ocrData, llmResult, ocrResult, cosUrl, validationResult);
@@ -707,6 +718,9 @@ public class UploadController {
             throw new BizException(2001, "面单识别失败：未识别出有效运单信息");
         }
 
+        // 步骤4.2：F11 运单号去重 + 快递公司格式校验
+        applyDuplicateAndWaybillCheck(ocrData, validationResult);
+
         // 步骤5：保存到数据库
         ReturnRecord record = buildRecord(ocrData, llmResult, ocrResult, cosUrl, validationResult);
         recordMapper.insert(record);
@@ -838,6 +852,63 @@ public class UploadController {
         map.put("name", name);
         map.put("status", status);
         return map;
+    }
+
+    /**
+     * F11 运单号去重 + 快递公司格式校验（3 处上传流程复用）
+     *
+     * 实现步骤：
+     *   1. 运单号为空时跳过（由 ValidatorService 负责空值校验）
+     *   2. 查询 synced 状态的重复记录，存在则抛 DuplicateWaybillError 阻断
+     *   3. 查询 confirmed 状态的重复记录，存在则追加 warning 不阻断
+     *   4. 调 WaybillValidator 校验前缀与快递公司匹配，不匹配追加 warning
+     *
+     * @param ocrData         OCR 识别结果
+     * @param validationResult 校验结果 Map，warnings 字段会被追加
+     */
+    @SuppressWarnings("unchecked")
+    private void applyDuplicateAndWaybillCheck(Map<String, Object> ocrData, Map<String, Object> validationResult) {
+        String waybillNo = getString(ocrData, "waybill_no");
+
+        // 步骤1：运单号为空跳过
+        if (waybillNo.isEmpty()) {
+            return;
+        }
+
+        // 获取 validation warnings list（不存在则创建）
+        List<String> warnings = (List<String>) validationResult.getOrDefault("warnings", new ArrayList<>());
+        if (!(warnings instanceof ArrayList)) {
+            warnings = new ArrayList<>(warnings);
+        }
+
+        // 步骤2：synced 重复阻断
+        Long syncedCount = recordMapper.selectCount(new LambdaQueryWrapper<ReturnRecord>()
+                .eq(ReturnRecord::getWaybillNo, waybillNo)
+                .eq(ReturnRecord::getStatus, "synced"));
+        if (syncedCount != null && syncedCount > 0) {
+            log.warn("[F11去重] 运单号已写入飞书，阻断上传：waybill_no={}", waybillNo);
+            throw new DuplicateWaybillError("该运单已写入飞书，请勿重复上传：" + waybillNo);
+        }
+
+        // 步骤3：confirmed 重复警告
+        Long confirmedCount = recordMapper.selectCount(new LambdaQueryWrapper<ReturnRecord>()
+                .eq(ReturnRecord::getWaybillNo, waybillNo)
+                .eq(ReturnRecord::getStatus, "confirmed"));
+        if (confirmedCount != null && confirmedCount > 0) {
+            String msg = "该运单已有待写飞书记录，请核对：" + waybillNo;
+            warnings.add(msg);
+            log.warn("[F11去重] 运单号已有待写飞书记录：waybill_no={}", waybillNo);
+        }
+
+        // 步骤4：快递公司格式校验
+        String expressCompany = getString(ocrData, "express_company");
+        String waybillWarning = waybillValidator.validate(waybillNo, expressCompany);
+        if (waybillWarning != null) {
+            warnings.add(waybillWarning);
+        }
+
+        // 回写 warnings 到 validationResult
+        validationResult.put("warnings", warnings);
     }
 
     /**
