@@ -42,14 +42,27 @@
 
 ## 功能特性
 
+### 核心识别能力
+
 - **双引擎 OCR 交叉验证**：智谱 OCR（引擎 A）与阿里云面单 OCR（引擎 B）并行识别，结果交叉比对
 - **LLM 智能分析**：DeepSeek V4 Flash 进行语义校验、退货原因提取与智能分类
 - **图片持久化**：腾讯云 COS 存储原图，URL 供 OCR 与飞书引用
 - **飞书自动写入**：识别结果一键写入飞书多维表格，并通过机器人推送卡片消息
-- **批量上传**：支持单次最多 20 张面单图片（每张 ≤ 10MB）的批量识别
-- **移动端适配**：前端响应式设计，适配手机拍照上传场景
-- **五层保障体系**：交叉验证 → 置信度判断 → 格式校验 → DeepSeek 语义校验 → 人工确认
+- **五层保障体系**：交叉验证 -> 置信度判断 -> 格式校验 -> DeepSeek 语义校验 -> 人工确认
 - **成本优化**：单次识别成本约 ¥0.01，相比单引擎方案月成本降低约 80%
+
+### 上传与交互
+
+- **SSE 流式上传**：`/api/upload/sse` 实时推送 OCR/LLM 各阶段进度，前端展示流水线状态
+- **批量上传**：支持单次最多 20 张面单图片（每张 ≤ 10MB）的批量识别
+- **OCR 失败保护**：双引擎均未识别出有效运单信息时不写库，避免记录页出现"失败数据"
+- **记录管理**：支持单条/批量删除、编辑确认、同步状态检索
+
+### 前端体验
+
+- **双主题切换**：Vercel 风格单色系设计，支持浅色/暗色一键切换，自动跟随系统偏好并持久化
+- **仪表盘**：首页展示识别总量、待确认、已同步、失败数等统计数据，支持自动刷新
+- **移动端适配**：响应式设计，适配手机拍照上传场景，移动端底部 Tab 栏
 
 ---
 
@@ -59,13 +72,16 @@
 |------|------|
 | 后端 | Java 21、Spring Boot 3.3.0、MyBatis-Plus 3.5.7、Maven |
 | 前端 | Vue 3.4、Vite 5.2、Element Plus 2.7、Axios |
-| 数据库 | MySQL 8.0 |
+| 数据库 | MySQL 8.0（宿主机系统级安装，不放入 Docker） |
 | 图片存储 | 腾讯云 COS（cos_api 5.6.227） |
 | OCR 引擎 A | 智谱 OCR（OkHttp 直连） |
 | OCR 引擎 B | 阿里云面单 OCR（ocr_api20210707 3.1.3） |
 | LLM | DeepSeek V4 Flash |
 | 飞书 | lark-oapi 2.3.6 + Webhook 机器人 |
-| 构建工具 | Maven、Vite |
+| 容器编排 | Docker Compose（backend 容器内网 + frontend 容器对外） |
+| Web 服务器 | Nginx（frontend 容器内置，静态托管 + /api 反向代理 + SSE 配置） |
+| HTTPS | Let's Encrypt 自动签发与续期（jonasal/nginx-certbot 5.2.3） |
+| 构建工具 | Maven Wrapper、Vite |
 
 ---
 
@@ -94,6 +110,8 @@
 ReturnVision/
 ├── returnvision-backend/            # 后端服务（Spring Boot）
 │   ├── pom.xml
+│   ├── mvnw / mvnw.cmd              # Maven Wrapper（无需预装 Maven）
+│   ├── .mvn/                        # Maven Wrapper 配置
 │   └── src/main/java/tech/jxing/returnvision/
 │       ├── ReturnVisionApplication.java     # 启动类
 │       ├── controller/                      # 接口层
@@ -102,7 +120,7 @@ ReturnVision/
 │       ├── model/                           # 数据层
 │       │   ├── entity/                       # MyBatis-Plus 实体
 │       │   └── mapper/                      # Mapper 接口
-│       ├── config/                          # 配置类
+│       ├── config/                          # 配置类（CORS / App）
 │       └── common/                          # 通用组件
 │           ├── ResponseResult.java          # 统一响应
 │           ├── GlobalExceptionHandler.java  # 全局异常处理
@@ -112,11 +130,17 @@ ReturnVision/
 │   ├── package.json
 │   ├── vite.config.js
 │   └── src/
-│       ├── App.vue
-│       ├── main.js
+│       ├── App.vue                          # 根组件（主题切换 + Tab 导航）
+│       ├── main.js                          # 入口（防闪屏主题初始化）
 │       ├── api.js                           # 接口封装
+│       ├── icons.js                         # SVG 图标集合
 │       ├── components/                      # 业务组件
+│       │   ├── DashboardPanel.vue           # 仪表盘（统计 + 自动刷新）
+│       │   ├── RecognitionPanel.vue         # 识别面板（上传 + SSE 进度 + 结果）
+│       │   └── RecordsPanel.vue             # 记录面板（列表 + 编辑 + 删除）
 │       └── composables/                     # 组合式函数
+│           ├── useMobile.js                 # 移动端检测
+│           └── useTheme.js                  # 主题切换（系统偏好 + localStorage）
 │
 ├── deploy/                          # 线上部署配置（Docker Compose + Nginx + 脚本）
 │   ├── docker-compose.yml           # 容器编排：backend（内网）+ frontend（HTTPS 自动签发）
@@ -135,10 +159,11 @@ ReturnVision/
 ## 环境要求
 
 - **JDK**：21 及以上
-- **Maven**：3.8+
+- **Maven**：无需预装（项目内置 Maven Wrapper，`mvnw` / `mvnw.cmd` 自动下载指定版本）
 - **Node.js**：18+（推荐 20 LTS）
 - **npm**：9+ 或 pnpm / yarn
 - **MySQL**：8.0
+- **Docker**（可选，仅生产部署需要）：Docker 24+ 与 Docker Compose v2
 - **外部服务账号**：腾讯云 COS、智谱开放平台、阿里云 OCR、DeepSeek、飞书开放平台
 
 ---
@@ -189,7 +214,10 @@ export FEISHU_BOT_WEBHOOK=your_bot_webhook
 
 ```bash
 cd returnvision-backend
-mvn clean spring-boot:run
+# Windows
+mvnw.cmd clean spring-boot:run
+# macOS / Linux
+./mvnw clean spring-boot:run
 ```
 
 后端默认监听 `http://localhost:8080`，启动时自动执行 `schema.sql` 建表。
@@ -209,7 +237,8 @@ npm run dev
 ```bash
 # 后端
 cd returnvision-backend
-mvn clean package -DskipTests
+mvnw.cmd clean package -DskipTests      # Windows
+./mvnw clean package -DskipTests        # macOS / Linux
 java -jar target/returnvision-backend-1.0.0.jar
 
 # 前端
@@ -217,6 +246,18 @@ cd returnvision-frontend
 npm run build
 # 产物位于 dist/，可由 Nginx 或后端静态资源托管
 ```
+
+### 6. Docker 部署（生产环境）
+
+项目内置 Docker Compose 部署方案，详见 [`deploy/`](deploy/) 目录：
+
+```bash
+cd deploy
+cp .env.example .env       # 填写真实密钥
+bash deploy.sh             # 一键部署
+```
+
+架构：backend 容器（JDK21 JRE，仅内网）+ frontend 容器（Nginx + Certbot，HTTPS 自动签发），MySQL 使用宿主机系统级安装。
 
 ---
 
@@ -243,11 +284,14 @@ npm run build
 ## 使用说明
 
 1. 打开前端页面（本地 `http://localhost:5173`，线上 <https://returnvision.jxing.tech>）
-2. 在「识别面板」中拍照或上传快递面单图片（支持批量 ≤ 20 张）
-3. 系统自动调用 COS 上传 → 双引擎 OCR → 交叉验证 → DeepSeek 分析，并展示识别结果
-4. 人工审核并确认退货原因、退货分类等字段
-5. 确认后系统自动写入飞书多维表格，并通过飞书机器人推送卡片消息到群
-6. 在「记录面板」中可检索历史识别记录及其同步状态
+2. 在「**仪表盘**」查看识别总量、待确认、已同步、失败数等统计
+3. 切换到「**识别**」面板，拍照或上传快递面单图片（支持批量 ≤ 20 张），实时查看 SSE 流式进度
+4. 系统自动调用 COS 上传 -> 双引擎 OCR -> 交叉验证 -> DeepSeek 分析，并展示识别结果
+5. 人工审核并确认退货原因、退货分类等字段
+6. 确认后系统自动写入飞书多维表格，并通过飞书机器人推送卡片消息到群
+7. 在「**记录**」面板中检索历史记录、编辑字段、单条/批量删除
+
+> 顶栏右侧可一键切换浅色/暗色主题，首次访问自动跟随系统偏好。
 
 ---
 
@@ -268,10 +312,16 @@ npm run build
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | GET  | `/` | 健康检查 / 根路径 |
-| POST | `/api/upload` | 上传面单图片并触发识别流程（multipart/form-data） |
-| GET  | `/api/records` | 查询退货记录列表 |
-| POST | `/api/confirm` | 确认退货记录并写入飞书 |
-| GET  | `/api/dashboard/stats` | 仪表盘统计数据 |
+| POST | `/api/upload` | 上传单张面单图片并触发识别流程（multipart/form-data） |
+| POST | `/api/upload/sse` | SSE 流式上传：实时推送 OCR/LLM 各阶段进度 |
+| POST | `/api/upload/batch` | 批量上传：一次提交多张图片并行识别 |
+| POST | `/api/records/batch` | 批量上传（旧接口，返回汇总结构） |
+| GET  | `/api/records` | 查询退货记录列表（支持状态筛选） |
+| DELETE | `/api/records/{id}` | 删除单条退货记录 |
+| DELETE | `/api/records/batch` | 批量删除退货记录 |
+| POST | `/api/confirm` | 确认单条退货记录并写入飞书 |
+| POST | `/api/confirm/batch` | 批量确认并写入飞书 |
+| GET  | `/api/dashboard/stats` | 仪表盘统计数据（总量、待确认、已同步、失败数） |
 
 > 实际接口以 [`docs/06-API接口设计.md`](docs/06-API接口设计.md) 为准；响应字段定义见 [`docs/基础框架规范.md`](docs/基础框架规范.md) 第一章。
 
@@ -293,11 +343,11 @@ npm run build
 ### 常用命令
 
 ```bash
-# 后端编译
-cd returnvision-backend && mvn clean compile
+# 后端编译（Windows 用 mvnw.cmd，macOS/Linux 用 ./mvnw）
+cd returnvision-backend && mvnw.cmd clean compile
 
 # 后端打包（跳过测试）
-mvn clean package -DskipTests
+mvnw.cmd clean package -DskipTests
 
 # 前端开发
 cd returnvision-frontend && npm run dev
@@ -307,6 +357,9 @@ npm run build
 
 # 前端预览构建产物
 npm run preview
+
+# 生产部署（Docker）
+cd deploy && bash deploy.sh
 ```
 
 ### 提交规范
@@ -354,6 +407,17 @@ npm run preview
 
 ## 版本历史
 
+### v2.1（2026-07-17）
+
+- **前端双主题重设计**：改用 Vercel 单色系设计，支持浅色/暗色一键切换，自动跟随系统偏好并 localStorage 持久化
+- **新增主题切换 composable**：`useTheme.js`，`App.vue` 顶栏主题按钮，`main.js` 防闪屏初始化
+- **新增 Maven Wrapper**：`mvnw` / `mvnw.cmd` / `.mvn/`，无需预装 Maven 即可构建
+- **OCR 失败保护**：双引擎均未识别出有效运单信息时不写库，避免记录页出现"失败数据"
+- **Docker 部署上线**：双容器架构（backend 内网 + frontend 对外），Nginx 反代 + Let's Encrypt HTTPS 自动签发
+- **CORS 反代修复**：`server.forward-headers-strategy: native` + 线上域名兜底，解决 Nginx 反代跨域 403
+- **新增 3 份规范文档**：docs/10 产品演进方案、docs/11 开发流程规范、docs/12 前端设计规范 v2.1
+- **AGENTS.md 升级**：新增「新增/优化功能的开发流程」章节与必读文档指引
+
 ### v2.0（2026-07-10）
 
 - **OCR 引擎升级**：从单引擎（阿里云）改为双引擎交叉验证（智谱 OCR 引擎 A + 阿里云引擎 B）
@@ -364,7 +428,7 @@ npm run preview
 - **新增飞书机器人通知**：写入飞书后自动发卡片消息到群
 - **新增交叉验证引擎**：双引擎并行识别 + 字段比对，一致时准确率接近 99.9%
 - **后端语言改为 Java**：Python/FastAPI 改为 Java 21/Spring Boot 3.x + MyBatis-Plus
-- **新增五层保障体系**：交叉验证 → 置信度判断 → 格式校验 → DeepSeek 语义校验 → 人工确认
+- **新增五层保障体系**：交叉验证 -> 置信度判断 -> 格式校验 -> DeepSeek 语义校验 -> 人工确认
 - **成本优化**：智谱 ¥0.01/次（原阿里云 ¥0.0825/次），月成本降低约 80%
 
 ---
