@@ -73,6 +73,7 @@
         :editRecord="pendingEditRecord"
         @confirmed="handleConfirmed" @navigate="handleNavigate" @clearEditRecord="pendingEditRecord = null" />
       <RecordsPanel v-show="activeTab === 'records'" @editRecord="handleEditRecord" @navigate="activeTab = $event" @refresh="handleRefresh" />
+      <UserManagePanel v-show="activeTab === 'users'" />
     </main>
   </div>
 </template>
@@ -80,7 +81,7 @@
 <script setup>
 // 步骤4：组件注册与状态管理
 import { ref, computed, onMounted } from 'vue';
-import { Search, Bell, HomeFilled, ScanLine, Document, Sun, Moon, X } from './icons';
+import { Search, Bell, HomeFilled, ScanLine, Document, Sun, Moon, X, UserFilled } from './icons';
 import { useTheme } from './composables/useTheme';
 import { useAuth } from './composables/useAuth';
 import api from './api';
@@ -88,6 +89,7 @@ import LoginPanel from './components/LoginPanel.vue';
 import DashboardPanel from './components/DashboardPanel.vue';
 import RecognitionPanel from './components/RecognitionPanel.vue';
 import RecordsPanel from './components/RecordsPanel.vue';
+import UserManagePanel from './components/UserManagePanel.vue';
 
 const activeTab = ref('dashboard');
 
@@ -100,12 +102,13 @@ const { isAuthenticated, user, clear } = useAuth();
 // 跨页面编辑数据传递：RecordsPanel 编辑 -> RecognitionPanel
 const pendingEditRecord = ref(null);
 
-// 步骤4.3：用户角色判断 -- 客服不显示工作台 Tab
+// 步骤4.3：用户角色判断 -- 客服不显示工作台 Tab，仅管理员显示用户管理 Tab
 const visibleTabs = computed(() => {
   const allTabs = [
     { key: 'dashboard', label: '工作台', icon: HomeFilled, roles: ['SUPERVISOR', 'ADMIN'] },
     { key: 'recognition', label: '面单识别', icon: ScanLine, roles: ['STAFF', 'SUPERVISOR', 'ADMIN'] },
     { key: 'records', label: '退货记录', icon: Document, roles: ['STAFF', 'SUPERVISOR', 'ADMIN'] },
+    { key: 'users', label: '用户管理', icon: UserFilled, roles: ['ADMIN'] },
   ];
   const userRoles = user.value?.roles || [];
   return allTabs.filter(tab => tab.roles.some(r => userRoles.includes(r)));

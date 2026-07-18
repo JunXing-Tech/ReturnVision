@@ -366,3 +366,186 @@ const response = await fetch('/api/upload/sse', {
 > 后端 JwtAuthenticationFilter 会从 Header 解析 token，对 SSE 接口同样生效。
 
 ---
+
+## 三、用户管理接口（F01.1，v2.1 新增）
+
+> 关联：docs/10 F01.1 用户管理 CRUD
+> 状态：✅ 已落地（2026-07-18）
+> 权限：所有接口仅 ADMIN 角色可访问（SecurityConfig 已配置 `/api/admin/**` hasRole("ADMIN")）
+
+### 3.1 接口列表
+
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| `/api/admin/users` | GET | 用户列表（含角色） |
+| `/api/admin/users` | POST | 创建用户 |
+| `/api/admin/users/{id}` | PUT | 编辑用户（改密/改角色/改状态） |
+| `/api/admin/users/{id}` | DELETE | 删除用户 |
+| `/api/admin/users/{id}/reset-password` | POST | 重置密码 |
+
+### 3.2 用户列表
+
+```
+GET /api/admin/users
+
+# 响应
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "users": [
+      {
+        "id": 1,
+        "username": "admin",
+        "display_name": "默认管理员",
+        "feishu_user_id": null,
+        "status": "active",
+        "last_login_at": "2026-07-18T14:30:00",
+        "created_at": "2026-07-18T10:00:00",
+        "roles": ["ADMIN"]
+      },
+      {
+        "id": 2,
+        "username": "zhangsan",
+        "display_name": "张三",
+        "feishu_user_id": "abc123",
+        "status": "active",
+        "last_login_at": "2026-07-18T15:00:00",
+        "created_at": "2026-07-18T11:00:00",
+        "roles": ["STAFF"]
+      }
+    ],
+    "total": 2
+  }
+}
+```
+
+### 3.3 创建用户
+
+```
+POST /api/admin/users
+Content-Type: application/json
+
+# 请求
+{
+  "username": "zhangsan",
+  "password": "initialPassword123",
+  "display_name": "张三",
+  "role_codes": ["STAFF"],
+  "feishu_user_id": "abc123"      # 可选，绑定飞书后可用 OAuth 登录
+}
+
+# 响应
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "id": 2,
+    "username": "zhangsan"
+  }
+}
+
+# 响应（用户名已存在）
+{
+  "code": 1007,
+  "msg": "用户名已存在",
+  "data": null
+}
+```
+
+### 3.4 编辑用户
+
+```
+PUT /api/admin/users/{id}
+Content-Type: application/json
+
+# 请求（所有字段可选，只传需要改的）
+{
+  "display_name": "张三（已改名）",
+  "role_codes": ["SUPERVISOR"],   # 改角色
+  "status": "disabled",           # 禁用
+  "feishu_user_id": "new_feishu_id"
+}
+
+# 响应
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "success": true
+  }
+}
+```
+
+### 3.5 删除用户
+
+```
+DELETE /api/admin/users/{id}
+
+# 响应
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "success": true
+  }
+}
+
+# 响应（不能删自己）
+{
+  "code": 1008,
+  "msg": "不能删除自己",
+  "data": null
+}
+
+# 响应（不能删最后一个管理员）
+{
+  "code": 1009,
+  "msg": "不能删除最后一个管理员",
+  "data": null
+}
+```
+
+### 3.6 重置密码
+
+```
+POST /api/admin/users/{id}/reset-password
+Content-Type: application/json
+
+# 请求
+{
+  "new_password": "newPassword456"
+}
+
+# 响应
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "success": true
+  }
+}
+```
+
+> 重置后用户需用新密码登录，原 refresh token 全部失效（被禁用账号同等效果）。
+
+### 3.7 安全约束（5 项）
+
+| # | 约束 | 错误码 |
+|---|------|--------|
+| 1 | 不能删除自己 | 1008 |
+| 2 | 不能禁用自己 | 1008 |
+| 3 | 不能删除最后一个管理员 | 1009 |
+| 4 | 不能撤销自己的 ADMIN 角色（避免自降级后无管理员） | 1010 |
+| 5 | 创建/重置密码时 BCrypt 哈希存储 | - |
+
+### 3.8 错误码补充
+
+| 错误码 | 说明 |
+|--------|------|
+| 1007 | 用户名已存在 |
+| 1008 | 不能操作自己的账号 |
+| 1009 | 不能删除最后一个管理员 |
+| 1010 | 不能撤销自己的管理员角色 |
+
+---

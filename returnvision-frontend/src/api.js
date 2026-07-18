@@ -113,6 +113,56 @@ export default {
     });
   },
 
+  // ==================== 用户管理接口（F01.1，仅 ADMIN） ====================
+
+  /**
+   * 获取用户列表
+   */
+  listUsers() {
+    return api.get('/admin/users');
+  },
+
+  /**
+   * 创建用户
+   */
+  createUser(username, password, displayName, roleCodes, feishuUserId) {
+    return api.post('/admin/users', {
+      username,
+      password,
+      display_name: displayName,
+      role_codes: roleCodes,
+      feishu_user_id: feishuUserId || null,
+    });
+  },
+
+  /**
+   * 编辑用户
+   */
+  updateUser(id, { displayName, roleCodes, status, feishuUserId }) {
+    return api.put(`/admin/users/${id}`, {
+      display_name: displayName,
+      role_codes: roleCodes,
+      status,
+      feishu_user_id: feishuUserId,
+    });
+  },
+
+  /**
+   * 删除用户
+   */
+  deleteUser(id) {
+    return api.delete(`/admin/users/${id}`);
+  },
+
+  /**
+   * 重置密码
+   */
+  resetPassword(id, newPassword) {
+    return api.post(`/admin/users/${id}/reset-password`, {
+      new_password: newPassword,
+    });
+  },
+
   // ==================== 业务接口 ====================
 
   /**
