@@ -1,6 +1,9 @@
 <template>
+  <!-- 登录页（未认证时显示） -->
+  <LoginPanel v-if="!isAuthenticated" @login-success="handleLoginSuccess" />
+
   <!-- 步骤1：app-shell 网格布局（侧边栏 + 主内容区） -->
-  <div class="app-shell">
+  <div v-else class="app-shell">
     <!-- 步骤2：侧边栏 -->
     <aside class="sidebar">
       <!-- 工作区切换 -->
@@ -14,7 +17,7 @@
 
       <!-- 导航列表 -->
       <nav class="nav-list">
-        <button v-for="tab in tabs" :key="tab.key"
+        <button v-for="tab in visibleTabs" :key="tab.key"
           :class="['nav-item', { active: activeTab === tab.key }]"
           @click="activeTab = tab.key">
           <component :is="tab.icon" />
@@ -25,13 +28,16 @@
       <!-- 分隔线 -->
       <div class="nav-divider"></div>
 
-      <!-- 底部用户信息 -->
+      <!-- 底部用户信息 + 登出 -->
       <div class="user-pill">
-        <div class="user-avatar">RV</div>
+        <div class="user-avatar">{{ userInitials }}</div>
         <div class="user-info">
-          <div class="user-name">运营员</div>
-          <div class="user-role">退运管理</div>
+          <div class="user-name">{{ user?.display_name || user?.username || '运营员' }}</div>
+          <div class="user-role">{{ userRolesText }}</div>
         </div>
+        <button class="logout-btn" @click="handleLogout" title="登出">
+          <el-icon><X /></el-icon>
+        </button>
       </div>
     </aside>
 
@@ -52,10 +58,10 @@
             <el-icon><Bell /></el-icon>
           </button>
           <div class="user-chip">
-            <div class="chip-avatar">RV</div>
+            <div class="chip-avatar">{{ userInitials }}</div>
             <div class="chip-info">
-              <div class="chip-name">运营员</div>
-              <div class="chip-role">退运管理</div>
+              <div class="chip-name">{{ user?.display_name || user?.username || '运营员' }}</div>
+              <div class="chip-role">{{ userRolesText }}</div>
             </div>
           </div>
         </div>
@@ -73,9 +79,12 @@
 
 <script setup>
 // 步骤4：组件注册与状态管理
-import { ref } from 'vue';
-import { Search, Bell, HomeFilled, ScanLine, Document, Sun, Moon } from './icons';
+import { ref, computed, onMounted } from 'vue';
+import { Search, Bell, HomeFilled, ScanLine, Document, Sun, Moon, X } from './icons';
 import { useTheme } from './composables/useTheme';
+import { useAuth } from './composables/useAuth';
+import api from './api';
+import LoginPanel from './components/LoginPanel.vue';
 import DashboardPanel from './components/DashboardPanel.vue';
 import RecognitionPanel from './components/RecognitionPanel.vue';
 import RecordsPanel from './components/RecordsPanel.vue';
@@ -85,14 +94,53 @@ const activeTab = ref('dashboard');
 // 步骤4.1：主题切换（首次跟随系统，用户切换后持久化）
 const { isDark, toggleTheme } = useTheme();
 
+// 步骤4.2：鉴权状态
+const { isAuthenticated, user, clear } = useAuth();
+
 // 跨页面编辑数据传递：RecordsPanel 编辑 -> RecognitionPanel
 const pendingEditRecord = ref(null);
 
-const tabs = [
-  { key: 'dashboard', label: '工作台', icon: HomeFilled },
-  { key: 'recognition', label: '面单识别', icon: ScanLine },
-  { key: 'records', label: '退货记录', icon: Document },
-];
+// 步骤4.3：用户角色判断 -- 客服不显示工作台 Tab
+const visibleTabs = computed(() => {
+  const allTabs = [
+    { key: 'dashboard', label: '工作台', icon: HomeFilled, roles: ['SUPERVISOR', 'ADMIN'] },
+    { key: 'recognition', label: '面单识别', icon: ScanLine, roles: ['STAFF', 'SUPERVISOR', 'ADMIN'] },
+    { key: 'records', label: '退货记录', icon: Document, roles: ['STAFF', 'SUPERVISOR', 'ADMIN'] },
+  ];
+  const userRoles = user.value?.roles || [];
+  return allTabs.filter(tab => tab.roles.some(r => userRoles.includes(r)));
+});
+
+// 步骤4.4：用户首字母 + 角色文本
+const userInitials = computed(() => {
+  const name = user.value?.display_name || user.value?.username || 'RV';
+  return name.slice(0, 2).toUpperCase();
+});
+
+const userRolesText = computed(() => {
+  const roles = user.value?.roles || [];
+  const roleMap = { STAFF: '客服', SUPERVISOR: '主管', ADMIN: '管理员' };
+  return roles.map(r => roleMap[r] || r).join('、') || '退运管理';
+});
+
+const tabs = visibleTabs;
+
+// 登录成功后默认跳第一个可见 Tab
+const handleLoginSuccess = () => {
+  if (visibleTabs.value.length > 0) {
+    activeTab.value = visibleTabs.value[0].key;
+  }
+};
+
+// 登出
+const handleLogout = async () => {
+  try {
+    await api.logout();
+  } catch (e) {
+    // 登出失败也清本地状态
+  }
+  clear();
+};
 
 // 确认写入飞书后跳转到记录页
 const handleConfirmed = () => {
@@ -118,6 +166,26 @@ const handleNavigate = (tab) => {
   }
   activeTab.value = tab;
 };
+
+// 步骤4.5：挂载时检查 URL 是否含飞书回调 code
+onMounted(async () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const code = urlParams.get('code');
+  const state = urlParams.get('state');
+  if (code) {
+    // 飞书 OAuth 回调
+    try {
+      const resp = await api.feishuCallback(code, state);
+      const { access_token, refresh_token, userInfo } = resp.data.data;
+      const { setTokens } = useAuth();
+      setTokens(access_token, refresh_token, userInfo);
+      // 清理 URL 参数
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } catch (err) {
+      console.error('飞书登录失败', err);
+    }
+  }
+});
 </script>
 
 <style>
@@ -388,6 +456,21 @@ body { font-family: var(--font-sans); background: var(--color-bg); color: var(--
 }
 .user-name { font-size: 13px; font-weight: 500; }
 .user-role { font-size: 11px; color: var(--color-fg-muted); }
+.logout-btn {
+  margin-left: auto;
+  width: 28px; height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--color-fg-muted);
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s, color 0.2s;
+}
+.logout-btn:hover {
+  background: var(--color-secondary);
+  color: var(--color-fg);
+}
 
 /* 主内容区 */
 .content {

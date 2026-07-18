@@ -1,13 +1,22 @@
-> 所属：退货OCR解决方案 | 版本：v2.0 | 日期：2026-07-10
+> 所属：退货OCR解决方案 | 版本：v2.1 | 日期：2026-07-18
+>
+> API 接口设计
 
 # API 接口设计
 
-| 接口 | 方法 | 说明 |
-|------|------|------|
-| `/api/upload` | POST | 上传图片，返回 OCR 识别结果 |
-| `/api/confirm` | POST | 确认识别结果，写入飞书表格 |
-| `/api/records` | GET | 查询退货记录列表 |
-| `/api/records/batch` | POST | 批量上传多张图片，批量识别 |
+## 一、业务接口（已有）
+
+| 接口 | 方法 | 说明 | 鉴权 |
+|------|------|------|------|
+| `/api/upload` | POST | 上传图片，返回 OCR 识别结果 | ✅ 需登录 |
+| `/api/upload/sse` | POST | SSE 流式上传识别 | ✅ 需登录 |
+| `/api/upload/batch` | POST | 批量上传识别 | ✅ 需登录 |
+| `/api/confirm` | POST | 确认识别结果，写入飞书表格 | ✅ 需登录 |
+| `/api/confirm/batch` | POST | 批量确认写入飞书 | ✅ 需登录 |
+| `/api/records` | GET | 查询退货记录列表 | ✅ 需登录 |
+| `/api/records/{id}` | DELETE | 删除单条记录 | ✅ 需登录 |
+| `/api/records/batch` | DELETE | 批量删除记录 | ✅ 需登录 |
+| `/api/dashboard/stats` | GET | 仪表盘统计数据 | ✅ 主管/管理员 |
 
 **上传识别接口示例**：
 
@@ -117,5 +126,243 @@ GET /api/records?page=1&page_size=20&status=pending
   }
 }
 ```
+
+---
+
+## 二、鉴权接口（F01，v2.1 新增）
+
+> 关联：[docs/10-产品演进与功能可行性方案.md](./10-产品演进与功能可行性方案.md) 第 7.1 节 F01
+> 状态：✅ 已落地（2026-07-18）
+> 所有鉴权接口返回统一 `ResponseResult<T>` 格式，业务接口需在 Header 携带 `Authorization: Bearer <access_token>`
+
+### 2.1 接口列表
+
+| 接口 | 方法 | 说明 | 鉴权 |
+|------|------|------|------|
+| `/api/auth/login` | POST | 账号密码登录 | ❌ 公开 |
+| `/api/auth/refresh` | POST | 刷新 access token | ❌ 公开（需 refresh_token） |
+| `/api/auth/logout` | POST | 登出（失效 refresh token） | ✅ 需登录 |
+| `/api/auth/me` | GET | 获取当前用户信息 | ✅ 需登录 |
+| `/api/auth/feishu/url` | GET | 获取飞书 OAuth 授权 URL | ❌ 公开 |
+| `/api/auth/feishu/callback` | POST | 飞书 OAuth 回调处理 | ❌ 公开 |
+| `/api/auth/change-password` | POST | 修改密码（首次登录强制改密用） | ✅ 需登录 |
+
+### 2.2 账号密码登录
+
+```
+POST /api/auth/login
+Content-Type: application/json
+
+# 请求
+{
+  "username": "admin",
+  "password": "admin123"
+}
+
+# 响应（成功）
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "access_token": "eyJhbGciOiJIUzI1NiJ9...",
+    "refresh_token": "dGhpcyBpcyBhIHJlZnJl...",
+    "expires_in": 7200,
+    "user": {
+      "id": 1,
+      "username": "admin",
+      "display_name": "默认管理员",
+      "roles": ["ADMIN"],
+      "must_change_password": true
+    }
+  }
+}
+
+# 响应（失败）
+{
+  "code": 1001,
+  "msg": "用户名或密码错误",
+  "data": null
+}
+```
+
+> `must_change_password: true` 时前端强制跳转改密页（初始密码 admin123 登录时为 true）。
+
+### 2.3 刷新 access token
+
+```
+POST /api/auth/refresh
+Content-Type: application/json
+
+# 请求
+{
+  "refresh_token": "dGhpcyBpcyBhIHJlZnJl..."
+}
+
+# 响应（成功）
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "access_token": "eyJhbGciOiJIUzI1NiJ9...",
+    "expires_in": 7200
+  }
+}
+
+# 响应（refresh token 已失效或过期）
+{
+  "code": 1003,
+  "msg": "refresh token 已失效，请重新登录",
+  "data": null
+}
+```
+
+### 2.4 登出
+
+```
+POST /api/auth/logout
+Authorization: Bearer <access_token>
+
+# 响应
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "success": true
+  }
+}
+```
+
+> 登出会删除该用户所有 refresh token 记录（多端登出），access token 因无状态无法主动失效，等 2h 自然过期。
+
+### 2.5 获取当前用户信息
+
+```
+GET /api/auth/me
+Authorization: Bearer <access_token>
+
+# 响应
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "id": 1,
+    "username": "admin",
+    "display_name": "默认管理员",
+    "roles": ["ADMIN"],
+    "last_login_at": "2026-07-18T14:30:00",
+    "must_change_password": false
+  }
+}
+```
+
+### 2.6 飞书 OAuth 登录
+
+**步骤1：获取授权 URL**
+
+```
+GET /api/auth/feishu/url
+
+# 响应
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "auth_url": "https://open.feishu.cn/open-apis/authen/v1/index?app_id=cli_xxx&redirect_uri=https%3A%2F%2Freturnvision.jxing.tech%2Flogin&state=xxx"
+  }
+}
+```
+
+**步骤2：飞书回调**
+
+```
+POST /api/auth/feishu/callback
+Content-Type: application/json
+
+# 请求（前端拿到 code 后调后端）
+{
+  "code": "xxxxxx",
+  "state": "xxx"
+}
+
+# 响应（成功，已绑定账号）
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "access_token": "eyJhbGciOiJIUzI1NiJ9...",
+    "refresh_token": "dGhpcyBpcyBhIHJlZnJl...",
+    "expires_in": 7200,
+    "user": {
+      "id": 2,
+      "username": "zhangsan",
+      "display_name": "张三",
+      "roles": ["STAFF"],
+      "must_change_password": false
+    }
+  }
+}
+
+# 响应（飞书账号未绑定）
+{
+  "code": 1004,
+  "msg": "飞书账号未绑定，请联系管理员绑定",
+  "data": null
+}
+```
+
+### 2.7 修改密码
+
+```
+POST /api/auth/change-password
+Authorization: Bearer <access_token>
+Content-Type: application/json
+
+# 请求
+{
+  "old_password": "admin123",
+  "new_password": "newSecurePassword456"
+}
+
+# 响应
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "success": true
+  }
+}
+```
+
+### 2.8 错误码定义
+
+| 错误码 | 说明 |
+|--------|------|
+| 1001 | 用户名或密码错误 |
+| 1002 | 记录不存在（已有，复用） |
+| 1003 | refresh token 已失效或过期 |
+| 1004 | 飞书账号未绑定 |
+| 1005 | 账号已禁用 |
+| 1006 | 旧密码错误 |
+| 1007 | 用户名已存在（用户管理用） |
+| 401 | 未登录（token 无效或过期） |
+| 403 | 权限不足 |
+
+### 2.9 SSE 接口鉴权说明
+
+> 关键：SSE 用 fetch 实现，**不能复用 axios 拦截器自动注入 token**。
+
+前端 `uploadSSE` 的 fetch 调用需手动加 Header：
+
+```javascript
+const response = await fetch('/api/upload/sse', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+  },
+  body: formData
+});
+```
+
+> 后端 JwtAuthenticationFilter 会从 Header 解析 token，对 SSE 接口同样生效。
 
 ---

@@ -43,3 +43,67 @@ CREATE TABLE IF NOT EXISTS ocr_log (
     error_msg     TEXT,                           -- 错误信息
     created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- F01 鉴权表（v2.1 新增）
+-- 详见 docs/05 第 4.5.8 节
+-- ============================================================
+
+-- 用户表
+CREATE TABLE IF NOT EXISTS sys_user (
+    id              INT PRIMARY KEY AUTO_INCREMENT,
+    username        VARCHAR(50) NOT NULL UNIQUE,         -- 登录用户名
+    password_hash   VARCHAR(100),                        -- BCrypt 哈希（飞书 OAuth 用户可为空）
+    display_name    VARCHAR(50),                         -- 显示名称
+    feishu_user_id  VARCHAR(50),                         -- 飞书 user_id（OAuth 绑定用，可为空）
+    status          VARCHAR(20) DEFAULT 'active',        -- active/disabled
+    last_login_at   DATETIME,                            -- 最后登录时间
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE INDEX idx_sys_user_feishu ON sys_user(feishu_user_id);
+
+-- 角色表
+CREATE TABLE IF NOT EXISTS sys_role (
+    id           INT PRIMARY KEY AUTO_INCREMENT,
+    role_code    VARCHAR(30) NOT NULL UNIQUE,            -- STAFF/SUPERVISOR/ADMIN
+    role_name    VARCHAR(30) NOT NULL,                   -- 客服/主管/管理员
+    description  VARCHAR(100),
+    created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 用户-角色关联表
+CREATE TABLE IF NOT EXISTS sys_user_role (
+    user_id  INT NOT NULL,
+    role_id  INT NOT NULL,
+    PRIMARY KEY (user_id, role_id),
+    FOREIGN KEY (user_id) REFERENCES sys_user(id) ON DELETE CASCADE,
+    FOREIGN KEY (role_id) REFERENCES sys_role(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- refresh token 表（支持主动失效）
+CREATE TABLE IF NOT EXISTS sys_refresh_token (
+    id            INT PRIMARY KEY AUTO_INCREMENT,
+    user_id       INT NOT NULL,                          -- 关联用户
+    token_hash    VARCHAR(100) NOT NULL,                 -- refresh token 的 SHA-256 哈希（不存明文）
+    expires_at    DATETIME NOT NULL,                     -- 过期时间
+    created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES sys_user(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE INDEX idx_refresh_token_user ON sys_refresh_token(user_id);
+CREATE INDEX idx_refresh_token_hash ON sys_refresh_token(token_hash);
+
+-- 预置三角色数据（admin 账号由 ApplicationRunner 初始化，避免 BCrypt 哈希硬编码）
+INSERT INTO sys_role (role_code, role_name, description) VALUES
+    ('STAFF', '客服', '录入退货记录，查看自己处理的记录')
+ON DUPLICATE KEY UPDATE role_name = VALUES(role_name);
+
+INSERT INTO sys_role (role_code, role_name, description) VALUES
+    ('SUPERVISOR', '主管', '审核记录+查看统计+导出数据')
+ON DUPLICATE KEY UPDATE role_name = VALUES(role_name);
+
+INSERT INTO sys_role (role_code, role_name, description) VALUES
+    ('ADMIN', '管理员', '用户管理+全权限')
+ON DUPLICATE KEY UPDATE role_name = VALUES(role_name);

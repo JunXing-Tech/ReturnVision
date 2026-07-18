@@ -34,6 +34,12 @@ services:
       - FEISHU_APP_TOKEN=${FEISHU_APP_TOKEN}
       - FEISHU_TABLE_ID=${FEISHU_TABLE_ID}
       - FEISHU_BOT_WEBHOOK=${FEISHU_BOT_WEBHOOK}
+      # 飞书 OAuth 单点登录（F01）
+      - FEISHU_OAUTH_CLIENT_ID=${FEISHU_OAUTH_CLIENT_ID:-}
+      - FEISHU_OAUTH_CLIENT_SECRET=${FEISHU_OAUTH_CLIENT_SECRET:-}
+      - FEISHU_OAUTH_REDIRECT_URI=${FEISHU_OAUTH_REDIRECT_URI:-https://returnvision.jxing.tech/login}
+      # JWT 鉴权（F01）
+      - JWT_SECRET=${JWT_SECRET}
     networks:
       - rv-net
     # 故意不映射端口：仅内网可访问，安全收口
