@@ -173,7 +173,11 @@ ReturnVision/
 ### 1. 克隆仓库
 
 ```bash
+# HTTPS（无需配置，直接克隆）
 git clone https://github.com/JunXing-Tech/ReturnVision.git
+
+# SSH（已配置 SSH key 时推荐，push 免密）
+git clone git@github.com:JunXing-Tech/ReturnVision.git
 cd ReturnVision
 ```
 

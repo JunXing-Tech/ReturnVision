@@ -98,7 +98,7 @@ ReturnVision/                        # 项目根目录
 
 **每个步骤完成并通过用户检查后，提交代码到 GitHub 远程仓库。**
 
-- 仓库地址：`https://github.com/JunXing-Tech/ReturnVision.git`
+- 仓库地址：`git@github.com:JunXing-Tech/ReturnVision.git`（SSH，已配置免密推送）
 - 提交时机：检查点通过后，用户说"继续"之前
 - 提交信息格式：`步骤N：简要描述`
 - 提交后推送到 origin/main
