@@ -1002,7 +1002,7 @@ textarea.input-shell { height: auto; min-height: 60px; padding: calc(var(--spaci
   border: 1px solid transparent;
 }
 .btn-primary { background: var(--color-primary); color: var(--color-primary-fg); }
-.btn-primary:hover:not(:disabled) { background: #000; }
+.btn-primary:hover:not(:disabled) { background: var(--color-primary-hover); }
 .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-ghost { background: transparent; color: var(--color-fg); border-color: var(--color-border); }
 .btn-ghost:hover { background: var(--color-accent); }

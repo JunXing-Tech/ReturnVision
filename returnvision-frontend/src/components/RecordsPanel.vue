@@ -716,7 +716,7 @@ tr.row-synced { background: var(--color-bg); }
 .btn-danger {
   height: 34px;
   background: transparent;
-  color: var(--color-error-strong, #dc2626);
+  color: var(--color-error);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   font-size: 13px;
@@ -729,7 +729,7 @@ tr.row-synced { background: var(--color-bg); }
   transition: var(--transition);
   font-family: var(--font-sans);
 }
-.btn-danger:hover:not(:disabled) { background: rgba(220, 38, 38, 0.08); border-color: #dc2626; }
+.btn-danger:hover:not(:disabled) { background: var(--color-error-subtle); border-color: var(--color-error); }
 .btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* 步骤23.7：行内操作按钮组 */
@@ -740,10 +740,10 @@ tr.row-synced { background: var(--color-bg); }
 }
 .table-action:disabled { opacity: 0.5; cursor: not-allowed; }
 .table-action-danger {
-  color: var(--color-error-strong, #dc2626);
+  color: var(--color-error);
 }
 .table-action-danger:hover {
-  background: rgba(220, 38, 38, 0.08);
+  background: var(--color-error-subtle);
 }
 
 /* 步骤24：Element Plus 下拉框样式对齐 */
