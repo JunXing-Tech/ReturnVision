@@ -89,6 +89,7 @@
       <UserManagePanel v-show="activeTab === 'users'" />
       <ProfilePanel v-show="activeTab === 'profile'" />
       <AuditLogPanel v-show="activeTab === 'audit'" />
+      <OcrStatsPanel v-show="activeTab === 'ocrstats'" />
     </main>
   </div>
 </template>
@@ -96,7 +97,7 @@
 <script setup>
 // 步骤4：组件注册与状态管理
 import { ref, computed, onMounted } from 'vue';
-import { Search, Bell, HomeFilled, ScanLine, Document, Sun, Moon, X, UserFilled, ChevronDown, UserCircle, LogoutIcon, ClipboardList } from './icons';
+import { Search, Bell, HomeFilled, ScanLine, Document, Sun, Moon, X, UserFilled, ChevronDown, UserCircle, LogoutIcon, ClipboardList, Download, ChartColumn } from './icons';
 import { useTheme } from './composables/useTheme';
 import { useAuth } from './composables/useAuth';
 import api from './api';
@@ -107,6 +108,7 @@ import RecordsPanel from './components/RecordsPanel.vue';
 import UserManagePanel from './components/UserManagePanel.vue';
 import ProfilePanel from './components/ProfilePanel.vue';
 import AuditLogPanel from './components/AuditLogPanel.vue';
+import OcrStatsPanel from './components/OcrStatsPanel.vue';
 
 const activeTab = ref('dashboard');
 

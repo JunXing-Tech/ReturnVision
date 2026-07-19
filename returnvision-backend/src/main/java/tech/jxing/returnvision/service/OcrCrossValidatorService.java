@@ -2,7 +2,9 @@ package tech.jxing.returnvision.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import tech.jxing.returnvision.ocrstats.OcrLogWriter;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -32,6 +34,7 @@ public class OcrCrossValidatorService {
 
     private final OcrZhipuService ocrZhipuService;
     private final OcrAliyunService ocrAliyunService;
+    private final OcrLogWriter ocrLogWriter;
 
     /** 交叉验证的字段列表 */
     private static final List<String> FIELDS = Arrays.asList(
@@ -47,10 +50,14 @@ public class OcrCrossValidatorService {
      *
      * @param ocrZhipuService  智谱OCR服务（引擎A）
      * @param ocrAliyunService 阿里云OCR服务（引擎B）
+     * @param ocrLogWriter     F05 OCR 日志埋点写入器
      */
-    public OcrCrossValidatorService(OcrZhipuService ocrZhipuService, OcrAliyunService ocrAliyunService) {
+    public OcrCrossValidatorService(OcrZhipuService ocrZhipuService,
+                                    OcrAliyunService ocrAliyunService,
+                                    OcrLogWriter ocrLogWriter) {
         this.ocrZhipuService = ocrZhipuService;
         this.ocrAliyunService = ocrAliyunService;
+        this.ocrLogWriter = ocrLogWriter;
     }
 
     /**
@@ -70,6 +77,10 @@ public class OcrCrossValidatorService {
     public Map<String, Object> dualEngineOcr(String imageUrl) {
         log.info("[交叉验证] 开始双引擎并行识别，imageUrl={}", imageUrl);
 
+        // F05 埋点：记录各引擎开始时间
+        long zhipuStart = System.currentTimeMillis();
+        long aliyunStart = System.currentTimeMillis();
+
         // 步骤1：并行调用双引擎
         CompletableFuture<Map<String, Object>> zhipuFuture = CompletableFuture.supplyAsync(
                 () -> ocrZhipuService.ocrByZhipu(imageUrl));
@@ -81,18 +92,24 @@ public class OcrCrossValidatorService {
         Map<String, Object> resultAliyun = null;
         boolean zhipuSuccess = false;
         boolean aliyunSuccess = false;
+        long zhipuDuration = 0;
+        long aliyunDuration = 0;
 
         try {
             resultZhipu = zhipuFuture.get();
             zhipuSuccess = true;
+            zhipuDuration = System.currentTimeMillis() - zhipuStart;
         } catch (InterruptedException | ExecutionException e) {
+            zhipuDuration = System.currentTimeMillis() - zhipuStart;
             log.warn("[交叉验证] 智谱OCR失败：{}", e.getCause() != null ? e.getCause().getMessage() : e.getMessage());
         }
 
         try {
             resultAliyun = aliyunFuture.get();
             aliyunSuccess = true;
+            aliyunDuration = System.currentTimeMillis() - aliyunStart;
         } catch (InterruptedException | ExecutionException e) {
+            aliyunDuration = System.currentTimeMillis() - aliyunStart;
             log.warn("[交叉验证] 阿里云OCR失败：{}", e.getCause() != null ? e.getCause().getMessage() : e.getMessage());
         }
 
@@ -100,6 +117,9 @@ public class OcrCrossValidatorService {
         if (!zhipuSuccess && !aliyunSuccess) {
             // 双引擎均失败 -> 转人工
             log.warn("[交叉验证] 双引擎均识别失败，转人工");
+            // F05 埋点：双失败也记录
+            ocrLogWriter.writeSimpleLog(null, "zhipu_ocr", zhipuDuration, false, BigDecimal.ZERO, "双引擎均失败");
+            ocrLogWriter.writeSimpleLog(null, "aliyun_waybill", aliyunDuration, false, BigDecimal.ZERO, "双引擎均失败");
             Map<String, Object> result = new HashMap<>();
             result.put("action", "manual");
             result.put("reason", "双引擎均识别失败");
@@ -111,6 +131,10 @@ public class OcrCrossValidatorService {
         if (!zhipuSuccess) {
             // 智谱失败，仅阿里云结果
             log.info("[交叉验证] 智谱失败，仅采用阿里云结果");
+            // F05 埋点：智谱失败 + 阿里云成功
+            ocrLogWriter.writeSimpleLog(null, "zhipu_ocr", zhipuDuration, false, BigDecimal.ZERO, "智谱失败");
+            ocrLogWriter.writeLog(null, "aliyun_waybill", aliyunDuration, true, BigDecimal.ONE,
+                    extractFieldConfidence(resultAliyun), null);
             Map<String, Object> result = new HashMap<>();
             result.put("action", "accept");
             result.put("data", extractFlatData(resultAliyun));
@@ -123,6 +147,9 @@ public class OcrCrossValidatorService {
         if (!aliyunSuccess) {
             // 阿里云失败，仅智谱结果
             log.info("[交叉验证] 阿里云失败，仅采用智谱结果");
+            // F05 埋点：智谱成功 + 阿里云失败
+            ocrLogWriter.writeSimpleLog(null, "zhipu_ocr", zhipuDuration, true, BigDecimal.ONE, null);
+            ocrLogWriter.writeSimpleLog(null, "aliyun_waybill", aliyunDuration, false, BigDecimal.ZERO, "阿里云失败");
             Map<String, Object> result = new HashMap<>();
             result.put("action", "accept");
             result.put("data", extractFlatData(resultZhipu));
@@ -183,6 +210,10 @@ public class OcrCrossValidatorService {
             log.warn("[交叉验证] 运单号冲突，转人工。智谱={}, 阿里云={}",
                     getStringValue(resultZhipu, "waybill_no"),
                     getStringValue(resultAliyun, "waybill_no"));
+            // F05 埋点：双成功但运单号冲突
+            ocrLogWriter.writeSimpleLog(null, "zhipu_ocr", zhipuDuration, true, BigDecimal.ONE, null);
+            ocrLogWriter.writeLog(null, "aliyun_waybill", aliyunDuration, true, BigDecimal.ONE,
+                    extractFieldConfidence(resultAliyun), null);
             Map<String, Object> result = new HashMap<>();
             result.put("action", "manual");
             result.put("reason", "运单号双引擎结果不一致");
@@ -196,6 +227,10 @@ public class OcrCrossValidatorService {
         if (!diffFields.isEmpty()) {
             // 有差异字段（非运单号） -> 需人工复核
             log.info("[交叉验证] 存在差异字段，需复核。diff_fields={}", diffFields);
+            // F05 埋点：双成功有差异
+            ocrLogWriter.writeSimpleLog(null, "zhipu_ocr", zhipuDuration, true, BigDecimal.ONE, null);
+            ocrLogWriter.writeLog(null, "aliyun_waybill", aliyunDuration, true, BigDecimal.ONE,
+                    extractFieldConfidence(resultAliyun), null);
             Map<String, Object> result = new HashMap<>();
             result.put("action", "review");
             result.put("data", chosenData);
@@ -208,12 +243,34 @@ public class OcrCrossValidatorService {
 
         // 全部一致 -> 自动采用
         log.info("[交叉验证] 全部字段一致，自动采用");
+        // F05 埋点：双成功全部一致
+        ocrLogWriter.writeSimpleLog(null, "zhipu_ocr", zhipuDuration, true, BigDecimal.ONE, null);
+        ocrLogWriter.writeLog(null, "aliyun_waybill", aliyunDuration, true, BigDecimal.ONE,
+                extractFieldConfidence(resultAliyun), null);
         Map<String, Object> result = new HashMap<>();
         result.put("action", "accept");
         result.put("data", chosenData);
         result.put("source", "cross_validated");
         result.put("confidence", "high");
         return result;
+    }
+
+    /**
+     * F05 从阿里云结果提取字段级置信度
+     * 阿里云返回的 confidence 是 {field_prob: value} 格式，转换为 {field: prob/100}
+     */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> extractFieldConfidence(Map<String, Object> resultAliyun) {
+        Map<String, Object> confidenceMap = (Map<String, Object>) resultAliyun
+                .getOrDefault("confidence", Collections.emptyMap());
+        Map<String, Object> fieldConfidence = new HashMap<>();
+        for (String field : FIELDS) {
+            int prob = getIntValue(confidenceMap, field + "_prob");
+            if (prob > 0) {
+                fieldConfidence.put(field, prob / 100.0);
+            }
+        }
+        return fieldConfidence;
     }
 
     /**

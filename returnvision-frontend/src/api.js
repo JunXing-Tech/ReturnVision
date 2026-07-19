@@ -358,4 +358,14 @@ export default {
       responseType: 'blob',
     });
   },
+
+  // ==================== OCR 统计接口（F05） ====================
+
+  /**
+   * 获取 OCR 准确率统计
+   * @param {number} days 统计天数，默认 7
+   */
+  getOcrStats(days = 7) {
+    return api.get('/dashboard/ocr-stats', { params: { days } });
+  },
 };

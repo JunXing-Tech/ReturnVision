@@ -36,7 +36,11 @@ public class OcrLog {
     private Boolean success;               // 是否成功
 
     @TableField("confidence")
-    private BigDecimal confidence;         // 置信度
+    private BigDecimal confidence;         // 表级置信度
+
+    /** F05 字段级置信度 JSON：{"waybill_no":0.95,"rec_name":0.88,...} */
+    @TableField("field_confidence")
+    private String fieldConfidence;        // 字段级置信度（JSON 字符串）
 
     @TableField("error_msg")
     private String errorMsg;               // 错误信息

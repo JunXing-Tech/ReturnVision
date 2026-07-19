@@ -43,7 +43,8 @@ CREATE TABLE IF NOT EXISTS ocr_log (
     engine        VARCHAR(20) NOT NULL,           -- 引擎：zhipu_ocr/aliyun_waybill
     duration_ms   INT,                            -- 识别耗时（毫秒）
     success       TINYINT(1) DEFAULT 1,           -- 是否成功
-    confidence    DECIMAL(3,2),                   -- 置信度
+    confidence    DECIMAL(3,2),                   -- 表级置信度（0.00-1.00）
+    field_confidence JSON,                        -- F05 字段级置信度：{"waybill_no":0.95,...}
     error_msg     TEXT,                           -- 错误信息
     created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
