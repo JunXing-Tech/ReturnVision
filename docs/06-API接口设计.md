@@ -604,3 +604,59 @@ Content-Type: application/json
 | 1010 | 不能撤销自己的管理员角色 |
 
 ---
+
+## 四、审计日志接口（F03，v2.1 新增）
+
+> 关联：docs/10 F03 操作审计日志
+> 状态：✅ 已落地（2026-07-18）
+> 权限：仅 SUPERVISOR / ADMIN 可访问
+
+### 4.1 接口列表
+
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| `/api/audit/logs` | GET | 查询审计日志（支持分页+筛选） |
+
+### 4.2 查询审计日志
+
+```
+GET /api/audit/logs?page=1&size=20&user_id=&action=&start_date=&end_date=
+Authorization: Bearer <access_token>
+
+# 查询参数（均可选）
+# page: 页码，默认1
+# size: 每页条数，默认20
+# user_id: 按操作者筛选
+# action: 按操作类型筛选（如 LOGIN/CONFIRM）
+# start_date: 开始日期（YYYY-MM-DD）
+# end_date: 结束日期（YYYY-MM-DD）
+
+# 响应
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "logs": [
+      {
+        "id": 1,
+        "user_id": 1,
+        "username": "admin",
+        "action": "LOGIN",
+        "target_type": "auth",
+        "target_id": null,
+        "description": "管理员登录",
+        "success": true,
+        "ip": "192.168.1.100",
+        "user_agent": "Mozilla/5.0...",
+        "request_data": "{\"username\":\"admin\"}",
+        "created_at": "2026-07-18T14:30:00"
+      }
+    ],
+    "total": 156,
+    "page": 1,
+    "size": 20
+  }
+}
+```
+
+---

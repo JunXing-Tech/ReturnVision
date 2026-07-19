@@ -5,6 +5,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import tech.jxing.returnvision.audit.AuditLog;
 import tech.jxing.returnvision.common.ResponseResult;
 import tech.jxing.returnvision.common.exception.AuthError;
 import tech.jxing.returnvision.common.exception.BizException;
@@ -66,6 +67,7 @@ public class AdminUserController {
      *   3. 返回新用户 id + username
      */
     @PostMapping
+    @AuditLog(action = "CREATE_USER", targetType = "user", description = "创建用户", recordParams = false)
     public ResponseResult<Map<String, Object>> createUser(@RequestBody CreateUserRequest request) {
         // 步骤1：校验必填字段
         if (request.getUsername() == null || request.getUsername().isEmpty()) {
@@ -92,6 +94,7 @@ public class AdminUserController {
      *   3. 返回成功
      */
     @PutMapping("/{id}")
+    @AuditLog(action = "UPDATE_USER", targetType = "user", description = "编辑用户")
     public ResponseResult<Map<String, Object>> updateUser(@PathVariable Long id,
                                                            @RequestBody UpdateUserRequest request) {
         // 步骤1：获取当前操作者
@@ -115,6 +118,7 @@ public class AdminUserController {
      *   3. 返回成功
      */
     @DeleteMapping("/{id}")
+    @AuditLog(action = "DELETE_USER", targetType = "user", description = "删除用户")
     public ResponseResult<Map<String, Object>> deleteUser(@PathVariable Long id) {
         // 步骤1：获取当前操作者
         AuthUser currentUser = getCurrentAuthUser();
@@ -137,6 +141,7 @@ public class AdminUserController {
      *   3. 返回成功
      */
     @PostMapping("/{id}/reset-password")
+    @AuditLog(action = "RESET_PASSWORD", targetType = "user", description = "重置用户密码", recordParams = false)
     public ResponseResult<Map<String, Object>> resetPassword(@PathVariable Long id,
                                                               @RequestBody Map<String, String> request) {
         // 步骤1：校验

@@ -7,9 +7,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import tech.jxing.returnvision.audit.AuditLog;
 import tech.jxing.returnvision.common.ResponseResult;
 import tech.jxing.returnvision.common.alert.AlertLevel;
 import tech.jxing.returnvision.common.alert.AlertService;
@@ -18,6 +21,7 @@ import tech.jxing.returnvision.common.exception.DuplicateWaybillError;
 import tech.jxing.returnvision.feishu.FeishuService;
 import tech.jxing.returnvision.model.entity.ReturnRecord;
 import tech.jxing.returnvision.model.mapper.ReturnRecordMapper;
+import tech.jxing.returnvision.security.AuthUser;
 import tech.jxing.returnvision.service.CosClientService;
 import tech.jxing.returnvision.service.LlmAnalyzerService;
 import tech.jxing.returnvision.service.OcrCrossValidatorService;
@@ -120,6 +124,7 @@ public class UploadController {
      */
     @SuppressWarnings("unchecked")
     @PostMapping("/upload")
+    @AuditLog(action = "UPLOAD", targetType = "return_record", description = "上传面单识别", recordParams = false)
     public ResponseResult<Map<String, Object>> upload(@RequestParam("file") MultipartFile file) {
         try {
             // 步骤1：上传图片到COS
@@ -333,6 +338,7 @@ public class UploadController {
      *   3. 汇总成功/失败数量
      */
     @PostMapping("/confirm/batch")
+    @AuditLog(action = "BATCH_CONFIRM", targetType = "return_record", description = "批量确认写飞书")
     public ResponseResult<Map<String, Object>> batchConfirm(@RequestBody Map<String, Object> request) {
         // 步骤1：解析record_ids
         Object idsObj = request.get("record_ids");
@@ -484,6 +490,18 @@ public class UploadController {
         Page<ReturnRecord> pageObj = new Page<>(page, size);
         LambdaQueryWrapper<ReturnRecord> wrapper = new LambdaQueryWrapper<>();
 
+        // 步骤1.5：F03 客服记录范围细化 -- STAFF 只看自己处理的，SUPERVISOR/ADMIN 看全部
+        AuthUser currentUser = getCurrentAuthUser();
+        if (currentUser != null && currentUser.getRoles() != null) {
+            List<String> roles = currentUser.getRoles();
+            boolean isStaffOnly = roles.contains("STAFF")
+                    && !roles.contains("SUPERVISOR")
+                    && !roles.contains("ADMIN");
+            if (isStaffOnly) {
+                wrapper.eq(ReturnRecord::getCreatedBy, currentUser.getUserId());
+            }
+        }
+
         // 步骤2：按状态筛选 + 时间倒序
         if (!status.isEmpty()) {
             wrapper.eq(ReturnRecord::getStatus, status);
@@ -510,6 +528,7 @@ public class UploadController {
      *   3. 删除数据库记录
      */
     @DeleteMapping("/records/{id}")
+    @AuditLog(action = "DELETE_RECORD", targetType = "return_record", description = "删除退货记录")
     public ResponseResult<Map<String, Object>> deleteRecord(@PathVariable Long id) {
         // 步骤1：加载记录
         ReturnRecord record = recordMapper.selectById(id);
@@ -541,6 +560,7 @@ public class UploadController {
      *   3. 汇总成功/失败数量
      */
     @DeleteMapping("/records/batch")
+    @AuditLog(action = "BATCH_DELETE_RECORD", targetType = "return_record", description = "批量删除退货记录")
     public ResponseResult<Map<String, Object>> batchDeleteRecords(@RequestBody Map<String, Object> request) {
         // 步骤1：解析 record_ids
         Object idsObj = request.get("record_ids");
@@ -912,6 +932,18 @@ public class UploadController {
     }
 
     /**
+     * F03 客服记录范围细化：从 SecurityContext 获取当前已认证用户
+     * 用于 /records 接口按 STAFF 角色过滤 created_by
+     */
+    private AuthUser getCurrentAuthUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof AuthUser)) {
+            return null;
+        }
+        return (AuthUser) authentication.getPrincipal();
+    }
+
+    /**
      * 构建ReturnRecord实体
      */
     private ReturnRecord buildRecord(Map<String, Object> ocrData, Map<String, Object> llmResult,
@@ -924,6 +956,13 @@ public class UploadController {
         record.setRecAddress(getString(ocrData, "rec_address"));
         record.setSenderName(getString(ocrData, "sender_name"));
         record.setSenderPhone(getString(ocrData, "sender_phone"));
+
+        // F03 操作审计：记录创建者 user_id
+        AuthUser currentUser = getCurrentAuthUser();
+        if (currentUser != null) {
+            record.setCreatedBy(currentUser.getUserId());
+            record.setUpdatedBy(currentUser.getUserId());
+        }
         record.setSenderAddress(getString(ocrData, "sender_address"));
         record.setExpressCompany(getString(ocrData, "express_company"));
         record.setGoods(getString(ocrData, "goods"));

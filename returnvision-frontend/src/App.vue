@@ -88,6 +88,7 @@
       <RecordsPanel v-show="activeTab === 'records'" @editRecord="handleEditRecord" @navigate="activeTab = $event" @refresh="handleRefresh" />
       <UserManagePanel v-show="activeTab === 'users'" />
       <ProfilePanel v-show="activeTab === 'profile'" />
+      <AuditLogPanel v-show="activeTab === 'audit'" />
     </main>
   </div>
 </template>
@@ -95,7 +96,7 @@
 <script setup>
 // 步骤4：组件注册与状态管理
 import { ref, computed, onMounted } from 'vue';
-import { Search, Bell, HomeFilled, ScanLine, Document, Sun, Moon, X, UserFilled, ChevronDown, UserCircle, LogoutIcon } from './icons';
+import { Search, Bell, HomeFilled, ScanLine, Document, Sun, Moon, X, UserFilled, ChevronDown, UserCircle, LogoutIcon, ClipboardList } from './icons';
 import { useTheme } from './composables/useTheme';
 import { useAuth } from './composables/useAuth';
 import api from './api';
@@ -105,6 +106,7 @@ import RecognitionPanel from './components/RecognitionPanel.vue';
 import RecordsPanel from './components/RecordsPanel.vue';
 import UserManagePanel from './components/UserManagePanel.vue';
 import ProfilePanel from './components/ProfilePanel.vue';
+import AuditLogPanel from './components/AuditLogPanel.vue';
 
 const activeTab = ref('dashboard');
 
@@ -132,6 +134,7 @@ const visibleTabs = computed(() => {
     { key: 'recognition', label: '面单识别', icon: ScanLine, roles: ['STAFF', 'SUPERVISOR', 'ADMIN'] },
     { key: 'records', label: '退货记录', icon: Document, roles: ['STAFF', 'SUPERVISOR', 'ADMIN'] },
     { key: 'users', label: '用户管理', icon: UserFilled, roles: ['ADMIN'] },
+    { key: 'audit', label: '审计日志', icon: ClipboardList, roles: ['SUPERVISOR', 'ADMIN'] },
     { key: 'profile', label: '个人中心', icon: UserCircle, roles: ['STAFF', 'SUPERVISOR', 'ADMIN'] },
   ];
   const userRoles = user.value?.roles || [];

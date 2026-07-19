@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import tech.jxing.returnvision.audit.AuditLog;
 import tech.jxing.returnvision.common.ResponseResult;
 import tech.jxing.returnvision.common.exception.AuthError;
 import tech.jxing.returnvision.common.exception.BizException;
@@ -148,6 +149,7 @@ public class AuthController {
      *   4. 返回成功
      */
     @PutMapping("/profile")
+    @AuditLog(action = "UPDATE_PROFILE", targetType = "auth", description = "修改自己的显示名")
     public ResponseResult<Map<String, Object>> updateProfile(@RequestBody Map<String, String> request) {
         // 步骤1：获取当前用户
         AuthUser authUser = getCurrentAuthUser();
@@ -199,6 +201,7 @@ public class AuthController {
      *   3. 返回登录结果
      */
     @PostMapping("/feishu/callback")
+    @AuditLog(action = "FEISHU_LOGIN", targetType = "auth", description = "飞书OAuth登录")
     public ResponseResult<Map<String, Object>> feishuCallback(@RequestBody Map<String, String> request) {
         // 步骤1：取参数
         String code = request.get("code");

@@ -31,6 +31,10 @@ CREATE INDEX idx_date ON return_records(return_date);    -- 按日期查询
 -- 增量字段（已存在表时添加新列，continue-on-error忽略重复列错误）
 ALTER TABLE return_records ADD COLUMN sender_address TEXT COMMENT '寄件人地址';
 ALTER TABLE return_records ADD COLUMN goods VARCHAR(100) COMMENT '托寄物';
+-- F03 操作审计：记录创建者/修改者 user_id（客服记录范围细化用）
+ALTER TABLE return_records ADD COLUMN created_by INT COMMENT '创建者user_id';
+ALTER TABLE return_records ADD COLUMN updated_by INT COMMENT '最后修改者user_id';
+CREATE INDEX IF NOT EXISTS idx_return_records_created_by ON return_records(created_by);
 
 -- OCR识别日志表（识别监控）
 CREATE TABLE IF NOT EXISTS ocr_log (
@@ -107,3 +111,26 @@ ON DUPLICATE KEY UPDATE role_name = VALUES(role_name);
 INSERT INTO sys_role (role_code, role_name, description) VALUES
     ('ADMIN', '管理员', '用户管理+全权限')
 ON DUPLICATE KEY UPDATE role_name = VALUES(role_name);
+
+-- ============================================================
+-- F03 操作审计日志表（v2.1 新增）
+-- 详见 docs/05 第 4.5.9 节
+-- ============================================================
+CREATE TABLE IF NOT EXISTS operation_log (
+    id            INT PRIMARY KEY AUTO_INCREMENT,
+    user_id       INT,                              -- 操作者user_id（NULL表示未登录操作，如登录失败）
+    username      VARCHAR(50),                      -- 操作者用户名（冗余，避免 join）
+    action        VARCHAR(50) NOT NULL,             -- 操作类型：CREATE/UPDATE/DELETE/LOGIN/LOGOUT/CONFIRM等
+    target_type   VARCHAR(50),                      -- 操作对象类型：return_record/user/auth等
+    target_id     VARCHAR(50),                      -- 操作对象ID
+    description   VARCHAR(500),                     -- 操作描述
+    success       TINYINT(1) DEFAULT 1,             -- 是否成功（0=失败，1=成功，失败操作也要审计）
+    ip            VARCHAR(50),                      -- 操作者IP
+    user_agent    VARCHAR(200),                     -- User-Agent
+    request_data  TEXT,                             -- 请求参数（JSON，脱敏后）
+    created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE INDEX idx_operation_log_user ON operation_log(user_id);
+CREATE INDEX idx_operation_log_action ON operation_log(action);
+CREATE INDEX idx_operation_log_created ON operation_log(created_at);

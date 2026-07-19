@@ -51,6 +51,14 @@ public class ReturnRecord {
     @TableField("goods")
     private String goods;                  // 托寄物
 
+    /** F03 操作审计：创建者 user_id（客服记录范围细化用） */
+    @TableField("created_by")
+    private Long createdBy;                // 创建者user_id
+
+    /** F03 操作审计：最后修改者 user_id */
+    @TableField("updated_by")
+    private Long updatedBy;                // 最后修改者user_id
+
     @TableField("return_date")
     private LocalDate returnDate;          // 退货日期
 

@@ -324,4 +324,22 @@ export default {
   batchDeleteRecords(recordIds) {
     return api.delete('/records/batch', { data: { record_ids: recordIds } });
   },
+
+  // ==================== 审计日志接口（F03，仅 SUPERVISOR/ADMIN） ====================
+
+  /**
+   * 查询审计日志（分页+筛选）
+   */
+  queryAuditLogs(params) {
+    return api.get('/audit/logs', {
+      params: {
+        page: params.page || 1,
+        size: params.size || 20,
+        user_id: params.userId,
+        action: params.action,
+        start_date: params.startDate,
+        end_date: params.endDate,
+      },
+    });
+  },
 };
