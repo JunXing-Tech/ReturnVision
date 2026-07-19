@@ -218,7 +218,43 @@ grep -l "@AuditLog" src/main/java/.../controller/*.java | while read f; do
 done
 ```
 
+**双向 grep 要求**（针对"注解是否覆盖"类检查）：
+
+当检查"@XxxLog 注解是否覆盖所有应审计方法"时，必须做双向验证：
+- **正向 grep**：统计有注解的方法数（确认数量）
+- **反向 grep**：对照 docs 中的"应审计操作清单"，逐一确认每个 action 都有注解
+
+```bash
+# 反向 grep 示例：列出所有 @PostMapping/@DeleteMapping 但没有 @AuditLog 的方法
+grep -B1 -E "@(Post|Put|Delete)Mapping" Controller.java | grep -v "@AuditLog" | grep "Mapping"
+```
+
 **原则**：用户看到的每个检查点都应是"已自审 + 已修复 + 有证据"的状态。
+
+#### API 存在性验证（L2/L3 必做）
+
+调用已有类（如 AlertService、AuthUser、AlertLevel 等非 JDK/框架类）的方法前，**必须先 grep 确认方法签名存在**：
+
+```bash
+# 调用 AlertLevel.INFO 前先确认枚举值存在
+grep "INFO" AlertLevel.java
+# 调用 authUser.getDisplayName() 前先确认方法存在
+grep "getDisplayName\|displayName" AuthUser.java
+```
+
+**理由**：编译器能发现这类问题，但提前 grep 能避免"写完才发现要返工"的浪费。
+
+#### 验收要点前移（L3 必做）
+
+不要等代码写完再对照验收要点，应该在**文档先行阶段**就把"验收清单"列出来（写在 docs 对应章节的"验收要点"小节），实现时逐条打勾：
+
+```
+文档先行阶段：docs/04 写"验收要点"清单
+  -> 实现阶段：每完成一项代码就回到 docs 打 ✅
+  -> L3 审查：逐条确认所有 ✅ 都有代码支撑
+```
+
+**反向验证**：L3 审查时，对 docs 验收清单的每一项，grep 确认代码中确实有对应实现（不能只看 docs 打了 ✅ 就信）。
 
 #### 机制有效性分析报告（长任务完成后产出）
 

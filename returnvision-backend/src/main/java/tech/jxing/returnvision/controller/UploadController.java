@@ -308,6 +308,7 @@ public class UploadController {
      *   3. 返回结果数组（每项含record_id/waybill_no/express_company/rec_name/return_reason/cross_validation）
      */
     @PostMapping("/upload/batch")
+    @AuditLog(action = "BATCH_UPLOAD", targetType = "return_record", description = "批量上传识别", recordParams = false)
     public ResponseResult<List<Map<String, Object>>> uploadBatch(@RequestParam("files") MultipartFile[] files) {
         log.info("[批量上传] 共{}个文件", files.length);
 
@@ -454,6 +455,7 @@ public class UploadController {
      *   5. 更新状态为synced，回填feishu_record_id
      */
     @PostMapping("/confirm")
+    @AuditLog(action = "CONFIRM", targetType = "return_record", description = "确认写飞书")
     public ResponseResult<Map<String, Object>> confirm(@RequestBody Map<String, Object> request) {
         // 步骤1：加载记录
         Long recordId = Long.valueOf(request.get("record_id").toString());
