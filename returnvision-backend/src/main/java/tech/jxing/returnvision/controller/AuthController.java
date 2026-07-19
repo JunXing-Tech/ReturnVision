@@ -121,6 +121,53 @@ public class AuthController {
     }
 
     /**
+     * 获取自己的完整信息（个人中心用，F01.2）
+     *
+     * 业务流程：
+     *   1. 从 SecurityContext 获取当前用户
+     *   2. 调 AuthService.getProfile
+     *   3. 返回完整信息
+     */
+    @GetMapping("/profile")
+    public ResponseResult<Map<String, Object>> getProfile() {
+        // 步骤1：获取当前用户
+        AuthUser authUser = getCurrentAuthUser();
+
+        // 步骤2-3：查并返回
+        Map<String, Object> result = authService.getProfile(authUser.getUserId());
+        return ResponseResult.success(result);
+    }
+
+    /**
+     * 修改自己的显示名（个人中心用，F01.2）
+     *
+     * 业务流程：
+     *   1. 从 SecurityContext 获取当前用户
+     *   2. 从请求体取 display_name
+     *   3. 调 AuthService.updateProfile
+     *   4. 返回成功
+     */
+    @PutMapping("/profile")
+    public ResponseResult<Map<String, Object>> updateProfile(@RequestBody Map<String, String> request) {
+        // 步骤1：获取当前用户
+        AuthUser authUser = getCurrentAuthUser();
+
+        // 步骤2：取参数
+        String displayName = request.get("display_name");
+        if (displayName == null || displayName.isEmpty()) {
+            throw new BizException(1006, "显示名不能为空");
+        }
+
+        // 步骤3：更新
+        authService.updateProfile(authUser.getUserId(), displayName);
+
+        // 步骤4：返回
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        return ResponseResult.success(result);
+    }
+
+    /**
      * 获取飞书 OAuth 授权 URL
      *
      * 业务流程：

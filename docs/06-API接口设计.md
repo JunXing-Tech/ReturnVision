@@ -347,7 +347,62 @@ Content-Type: application/json
 | 401 | 未登录（token 无效或过期） |
 | 403 | 权限不足 |
 
-### 2.9 SSE 接口鉴权说明
+### 2.9 个人中心接口（F01.2，v2.1 补充）
+
+> 关联：docs/10 F01.2 个人中心
+> 状态：✅ 已落地（2026-07-18）
+> 权限：所有登录用户可访问自己的信息
+
+#### 2.9.1 获取自己的信息
+
+```
+GET /api/auth/profile
+Authorization: Bearer <access_token>
+
+# 响应
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "id": 2,
+    "username": "zhangsan",
+    "display_name": "张三",
+    "feishu_user_id": "abc123",
+    "feishu_bound": true,
+    "roles": ["STAFF"],
+    "last_login_at": "2026-07-18T15:00:00",
+    "created_at": "2026-07-18T11:00:00"
+  }
+}
+```
+
+> 与 `/api/auth/me` 区别：profile 返回更完整的信息（含 feishu_bound / created_at），me 用于登录后快速获取基本信息。
+
+#### 2.9.2 修改自己的显示名
+
+```
+PUT /api/auth/profile
+Authorization: Bearer <access_token>
+Content-Type: application/json
+
+# 请求
+{
+  "display_name": "张三（已改名）"
+}
+
+# 响应
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "success": true
+  }
+}
+```
+
+> 用户只能改自己的显示名。用户名（登录标识）、角色、飞书绑定、状态都不能自己改，只能管理员改。
+
+### 2.10 SSE 接口鉴权说明
 
 > 关键：SSE 用 fetch 实现，**不能复用 axios 拦截器自动注入 token**。
 

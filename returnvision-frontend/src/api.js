@@ -113,6 +113,20 @@ export default {
     });
   },
 
+  /**
+   * 获取自己的完整信息（个人中心，F01.2）
+   */
+  getProfile() {
+    return api.get('/auth/profile');
+  },
+
+  /**
+   * 修改自己的显示名（个人中心，F01.2）
+   */
+  updateProfile(displayName) {
+    return api.put('/auth/profile', { display_name: displayName });
+  },
+
   // ==================== 用户管理接口（F01.1，仅 ADMIN） ====================
 
   /**

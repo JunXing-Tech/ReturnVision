@@ -28,16 +28,29 @@
       <!-- 分隔线 -->
       <div class="nav-divider"></div>
 
-      <!-- 底部用户信息 + 登出 -->
-      <div class="user-pill">
-        <div class="user-avatar">{{ userInitials }}</div>
-        <div class="user-info">
-          <div class="user-name">{{ user?.display_name || user?.username || '运营员' }}</div>
-          <div class="user-role">{{ userRolesText }}</div>
-        </div>
-        <button class="logout-btn" @click="handleLogout" title="登出">
-          <el-icon><X /></el-icon>
+      <!-- 底部用户信息 + 下拉菜单（个人信息 / 退出登录） -->
+      <div class="user-menu-wrapper">
+        <button class="user-pill" @click="toggleUserMenu" :class="{ active: showUserMenu }">
+          <div class="user-avatar">{{ userInitials }}</div>
+          <div class="user-info">
+            <div class="user-name">{{ user?.display_name || user?.username || '运营员' }}</div>
+            <div class="user-role">{{ userRolesText }}</div>
+          </div>
+          <el-icon class="user-chevron" :class="{ rotated: showUserMenu }"><ChevronDown /></el-icon>
         </button>
+
+        <!-- 下拉菜单 -->
+        <div v-if="showUserMenu" class="user-dropdown" @click.stop>
+          <button class="dropdown-item" @click="goProfile">
+            <el-icon><UserCircle /></el-icon>
+            <span>个人中心</span>
+          </button>
+          <div class="dropdown-divider"></div>
+          <button class="dropdown-item dropdown-danger" @click="handleLogout">
+            <el-icon><LogoutIcon /></el-icon>
+            <span>退出登录</span>
+          </button>
+        </div>
       </div>
     </aside>
 
@@ -74,6 +87,7 @@
         @confirmed="handleConfirmed" @navigate="handleNavigate" @clearEditRecord="pendingEditRecord = null" />
       <RecordsPanel v-show="activeTab === 'records'" @editRecord="handleEditRecord" @navigate="activeTab = $event" @refresh="handleRefresh" />
       <UserManagePanel v-show="activeTab === 'users'" />
+      <ProfilePanel v-show="activeTab === 'profile'" />
     </main>
   </div>
 </template>
@@ -81,7 +95,7 @@
 <script setup>
 // 步骤4：组件注册与状态管理
 import { ref, computed, onMounted } from 'vue';
-import { Search, Bell, HomeFilled, ScanLine, Document, Sun, Moon, X, UserFilled } from './icons';
+import { Search, Bell, HomeFilled, ScanLine, Document, Sun, Moon, X, UserFilled, ChevronDown, UserCircle, LogoutIcon } from './icons';
 import { useTheme } from './composables/useTheme';
 import { useAuth } from './composables/useAuth';
 import api from './api';
@@ -90,6 +104,7 @@ import DashboardPanel from './components/DashboardPanel.vue';
 import RecognitionPanel from './components/RecognitionPanel.vue';
 import RecordsPanel from './components/RecordsPanel.vue';
 import UserManagePanel from './components/UserManagePanel.vue';
+import ProfilePanel from './components/ProfilePanel.vue';
 
 const activeTab = ref('dashboard');
 
@@ -102,6 +117,14 @@ const { isAuthenticated, user, clear } = useAuth();
 // 跨页面编辑数据传递：RecordsPanel 编辑 -> RecognitionPanel
 const pendingEditRecord = ref(null);
 
+// 步骤4.2.1：用户下拉菜单状态
+const showUserMenu = ref(false);
+const toggleUserMenu = () => { showUserMenu.value = !showUserMenu.value; };
+const goProfile = () => {
+  activeTab.value = 'profile';
+  showUserMenu.value = false;
+};
+
 // 步骤4.3：用户角色判断 -- 客服不显示工作台 Tab，仅管理员显示用户管理 Tab
 const visibleTabs = computed(() => {
   const allTabs = [
@@ -109,6 +132,7 @@ const visibleTabs = computed(() => {
     { key: 'recognition', label: '面单识别', icon: ScanLine, roles: ['STAFF', 'SUPERVISOR', 'ADMIN'] },
     { key: 'records', label: '退货记录', icon: Document, roles: ['STAFF', 'SUPERVISOR', 'ADMIN'] },
     { key: 'users', label: '用户管理', icon: UserFilled, roles: ['ADMIN'] },
+    { key: 'profile', label: '个人中心', icon: UserCircle, roles: ['STAFF', 'SUPERVISOR', 'ADMIN'] },
   ];
   const userRoles = user.value?.roles || [];
   return allTabs.filter(tab => tab.roles.some(r => userRoles.includes(r)));
@@ -137,6 +161,7 @@ const handleLoginSuccess = () => {
 
 // 登出
 const handleLogout = async () => {
+  showUserMenu.value = false;
   try {
     await api.logout();
   } catch (e) {
@@ -440,14 +465,28 @@ body { font-family: var(--font-sans); background: var(--color-bg); color: var(--
   margin: calc(var(--spacing) * 3) calc(var(--spacing) * 3.5);
 }
 
-/* 底部用户信息 */
-.user-pill {
+/* 底部用户信息 + 下拉菜单 */
+.user-menu-wrapper {
+  position: relative;
   margin-top: auto;
+}
+.user-pill {
+  width: 100%;
   display: flex;
   align-items: center;
   gap: calc(var(--spacing) * 2);
   padding: calc(var(--spacing) * 3) calc(var(--spacing) * 3.5);
   border-top: 1px solid var(--color-sidebar-border);
+  background: transparent;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  cursor: pointer;
+  color: var(--color-fg);
+  text-align: left;
+}
+.user-pill:hover, .user-pill.active {
+  background: var(--color-secondary);
 }
 .user-avatar {
   width: 28px; height: 28px;
@@ -457,22 +496,60 @@ body { font-family: var(--font-sans); background: var(--color-bg); color: var(--
   font-size: 11px; font-weight: 600;
   flex-shrink: 0;
 }
+.user-info {
+  flex: 1;
+  min-width: 0;
+}
 .user-name { font-size: 13px; font-weight: 500; }
 .user-role { font-size: 11px; color: var(--color-fg-muted); }
-.logout-btn {
-  margin-left: auto;
-  width: 28px; height: 28px;
-  border: none;
-  background: transparent;
+.user-chevron {
+  transition: transform 0.2s;
   color: var(--color-fg-muted);
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: background 0.2s, color 0.2s;
+  flex-shrink: 0;
 }
-.logout-btn:hover {
-  background: var(--color-secondary);
+.user-chevron.rotated {
+  transform: rotate(180deg);
+}
+
+/* 下拉菜单 */
+.user-dropdown {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: calc(var(--spacing) * 2);
+  right: calc(var(--spacing) * 2);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+  z-index: 100;
+}
+.dropdown-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
   color: var(--color-fg);
+  text-align: left;
+}
+.dropdown-item:hover {
+  background: var(--color-secondary);
+}
+.dropdown-item.dropdown-danger {
+  color: #ef4444;
+}
+.dropdown-item.dropdown-danger:hover {
+  background: rgba(239, 68, 68, 0.08);
+}
+.dropdown-divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 0;
 }
 
 /* 主内容区 */

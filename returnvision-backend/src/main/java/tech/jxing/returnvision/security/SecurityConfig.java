@@ -62,7 +62,11 @@ public class SecurityConfig {
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             // 路径权限
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()
+                // 鉴权接口：只公开 login/refresh/feishu/callback（profile/me/logout/change-password 需登录）
+                .requestMatchers("/api/auth/login").permitAll()
+                .requestMatchers("/api/auth/refresh").permitAll()
+                .requestMatchers("/api/auth/feishu/url").permitAll()
+                .requestMatchers("/api/auth/feishu/callback").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/dashboard/**").hasAnyRole("SUPERVISOR", "ADMIN")
                 .requestMatchers("/api/**").authenticated()

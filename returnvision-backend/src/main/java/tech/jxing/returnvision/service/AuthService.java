@@ -268,6 +268,63 @@ public class AuthService {
         log.info("[鉴权] 修改密码成功：user_id={}", userId);
     }
 
+    /**
+     * 获取自己的完整信息（个人中心用）
+     *
+     * 实现步骤：
+     *   1. 查用户
+     *   2. 查角色
+     *   3. 组装完整信息（含 feishu_bound / created_at）
+     *
+     * @param userId 当前用户ID
+     * @return Map 含完整用户信息
+     */
+    public Map<String, Object> getProfile(Long userId) {
+        // 步骤1：查用户
+        SysUser user = userMapper.selectById(userId);
+        if (user == null) {
+            throw AuthError.invalidCredentials();
+        }
+
+        // 步骤2：查角色
+        List<String> roles = queryUserRoleCodes(userId);
+
+        // 步骤3：组装完整信息
+        Map<String, Object> result = new HashMap<>();
+        result.put("id", user.getId());
+        result.put("username", user.getUsername());
+        result.put("display_name", user.getDisplayName());
+        result.put("feishu_user_id", user.getFeishuUserId());
+        result.put("feishu_bound", user.getFeishuUserId() != null && !user.getFeishuUserId().isEmpty());
+        result.put("roles", roles);
+        result.put("last_login_at", user.getLastLoginAt());
+        result.put("created_at", user.getCreatedAt());
+        return result;
+    }
+
+    /**
+     * 修改自己的显示名（个人中心用）
+     *
+     * 实现步骤：
+     *   1. 查用户
+     *   2. 更新 display_name
+     *
+     * @param userId      当前用户ID
+     * @param displayName 新显示名
+     */
+    public void updateProfile(Long userId, String displayName) {
+        // 步骤1：查用户
+        SysUser user = userMapper.selectById(userId);
+        if (user == null) {
+            throw AuthError.invalidCredentials();
+        }
+
+        // 步骤2：更新 display_name
+        user.setDisplayName(displayName);
+        userMapper.updateById(user);
+        log.info("[鉴权] 修改显示名成功：user_id={}, display_name={}", userId, displayName);
+    }
+
     // ==================== 内部方法 ====================
 
     /**
