@@ -51,6 +51,10 @@
           <button class="icon-btn" :disabled="loading" @click="loadRecords">
             <Refresh />
           </button>
+          <button class="btn-export" :disabled="exporting" @click="exportRecords">
+            <Download />
+            {{ exporting ? '导出中...' : '导出 Excel' }}
+          </button>
         </div>
       </div>
 
@@ -80,7 +84,7 @@
             <tr
               v-for="row in records"
               :key="row.id"
-              :class="row.status === 'pending' ? 'row-pending' : 'row-synced'"
+              :class="isOverdue(row) ? 'row-overdue' : (row.status === 'pending' ? 'row-pending' : 'row-synced')"
             >
               <!-- 选择列 -->
               <td>
@@ -168,7 +172,7 @@ import { ElMessage } from 'element-plus';
 import api from '../api';
 import {
   Search, Refresh, Pen, Send, X, CircleCheck,
-  ChevronLeft, ChevronRight, Document,
+  ChevronLeft, ChevronRight, Document, Download,
 } from '../icons';
 
 const emit = defineEmits(['navigate', 'editRecord']);
@@ -185,6 +189,9 @@ const confirmingId = ref(null);
 const batchConfirming = ref(false);
 const deletingId = ref(null);
 const batchDeleting = ref(false);
+
+// F02 导出状态
+const exporting = ref(false);
 
 // 步骤8.1：加载记录列表
 const loadRecords = async () => {
@@ -310,8 +317,56 @@ const batchDelete = async () => {
   }
 };
 
+// F02 导出退货记录（带水印的 Excel）
+const exportRecords = async () => {
+  exporting.value = true;
+  try {
+    const resp = await api.exportRecords({
+      status: filterStatus.value,
+    });
+    // 创建 blob 并触发下载
+    const blob = new Blob([resp.data], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const now = new Date();
+    const ts = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+    link.download = `return_records_${ts}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    ElMessage.success('导出成功，文件已开始下载');
+  } catch (err) {
+    // blob 类型的错误响应需要特殊解析
+    if (err.response?.data instanceof Blob) {
+      const text = await err.response.data.text();
+      try {
+        const json = JSON.parse(text);
+        ElMessage.error('导出失败：' + (json.msg || '未知错误'));
+      } catch {
+        ElMessage.error('导出失败');
+      }
+    } else {
+      ElMessage.error('导出失败：' + (err.response?.data?.msg || err.message));
+    }
+  } finally {
+    exporting.value = false;
+  }
+};
+
 const statusLabel = (s) =>
   ({ pending: '待确认', confirmed: '已确认', synced: '已同步', failed: '失败' }[s] || s);
+
+// F02 超期预警：待确认且 created_at 超过 24 小时
+const isOverdue = (row) => {
+  if (row.status !== 'pending' || !row.created_at) return false;
+  const created = new Date(row.created_at);
+  const hours = (Date.now() - created.getTime()) / (1000 * 60 * 60);
+  return hours > 24;
+};
 
 const formatTime = (t) => {
   if (!t) return '-';
@@ -433,6 +488,31 @@ onMounted(() => loadRecords());
 .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
 .btn-primary svg { width: 14px; height: 14px; }
 
+/* F02 导出按钮 */
+.btn-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: transparent;
+  color: var(--color-accent, #14b8a6);
+  border: 1px solid var(--color-accent, #14b8a6);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.btn-export:hover:not(:disabled) {
+  background: var(--color-accent, #14b8a6);
+  color: #fff;
+}
+.btn-export:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-export svg { width: 14px; height: 14px; }
+
 .btn-ghost {
   display: inline-flex;
   align-items: center;
@@ -547,6 +627,12 @@ tr.row-pending {
   box-shadow: inset 2px 0 0 var(--color-accent);
 }
 tr.row-synced { background: var(--color-bg); }
+/* F02 超期预警：待确认超过 24 小时标黄 */
+tr.row-overdue {
+  background: rgba(245, 158, 11, 0.08);
+  box-shadow: inset 2px 0 0 #f59e0b;
+}
+tr.row-overdue:hover { background: rgba(245, 158, 11, 0.15) !important; }
 .data-table tbody tr:hover { background: var(--color-accent); }
 
 /* 步骤17：自定义复选框 */

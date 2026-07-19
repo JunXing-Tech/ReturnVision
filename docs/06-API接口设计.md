@@ -660,3 +660,53 @@ Authorization: Bearer <access_token>
 ```
 
 ---
+
+## 五、数据导出接口（F02，v2.1 新增）
+
+> 关联：docs/10 F02 数据保留期与导出管控
+> 状态：✅ 已落地（2026-07-19）
+> 权限：STAFF/SUPERVISOR/ADMIN 都可导出（按角色过滤数据范围，复用 F03 客服范围细化）
+
+### 5.1 导出退货记录
+
+```
+POST /api/records/export
+Authorization: Bearer <access_token>
+Content-Type: application/json
+
+# 请求（筛选条件，均可选）
+{
+  "status": "synced",
+  "start_date": "2026-07-01",
+  "end_date": "2026-07-18"
+}
+
+# 响应（成功，返回 Excel 文件流）
+Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+Content-Disposition: attachment; filename="return_records_20260718_143000.xlsx"
+
+# 响应（超限）
+{
+  "code": 1011,
+  "msg": "导出失败：单次最多导出 1000 条 / 每日导出次数超限",
+  "data": null
+}
+```
+
+**导出防护**：
+1. 强制审计：action=EXPORT_RECORDS 记录到 operation_log
+2. 水印：Excel 页眉含导出人+时间+IP+条数
+3. 限流：单次最多 1000 条，每人每日最多 5 次
+4. 告警：导出后飞书群通知主管
+
+**数据范围**：
+- STAFF：只能导出自己处理的记录（created_by = 当前用户）
+- SUPERVISOR/ADMIN：可导出全部记录
+
+### 5.2 错误码补充
+
+| 错误码 | 说明 |
+|--------|------|
+| 1011 | 导出次数/条数超限 |
+
+---

@@ -28,6 +28,14 @@
       </div>
     </section>
 
+    <!-- F02 超期预警条（待确认 > 24h 时显示） -->
+    <div v-if="overdueCount > 0" class="overdue-alert">
+      <span class="overdue-icon">⚠</span>
+      <span class="overdue-text">
+        有 <b>{{ overdueCount }}</b> 条待确认退货已超过 24 小时未处理，请尽快跟进
+      </span>
+    </div>
+
     <!-- 步骤3：主内容区（最近记录 + 趋势图表） -->
     <section class="main-content">
       <!-- 左侧：最近退货记录表格 -->
@@ -136,6 +144,9 @@ const kpis = ref([
   { eyebrow: '累计', title: '总记录', value: '-', delta: '', foot: '全部退货记录' },
 ]);
 
+// F02 超期预警：待确认超过 24h 的数量
+const overdueCount = ref(0);
+
 // 步骤7：最近退货记录
 const records = ref([]);
 
@@ -239,6 +250,8 @@ const loadDashboardData = async () => {
       kpis.value[1].value = s.synced_count ?? s.synced ?? '-';
       kpis.value[2].value = s.today_count ?? s.todayAdded ?? '-';
       kpis.value[3].value = s.total_count ?? s.total ?? '-';
+      // F02 超期预警
+      overdueCount.value = s.overdue_count ?? 0;
       if (Array.isArray(s.trend)) {
         trendData.value = s.trend;
       }
@@ -351,6 +364,27 @@ watch(() => props.active, (newVal) => {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: calc(var(--spacing) * 3);
+}
+
+/* F02 超期预警条 */
+.overdue-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  margin-top: calc(var(--spacing) * 3);
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 10px;
+  color: #b45309;
+  font-size: 14px;
+}
+.overdue-icon {
+  font-size: 18px;
+}
+.overdue-text b {
+  font-weight: 700;
+  color: #92400e;
 }
 .kpi-card {
   border: 1px solid var(--color-border);

@@ -83,6 +83,24 @@ jwt:
   access-token-expiration: 7200        # access token 有效期，秒（2 小时）
   refresh-token-expiration: 604800     # refresh token 有效期，秒（7 天）
 
+# 数据保留期（F02，v2.1 新增）
+retention:
+  return-record:
+    days: 90          # 已同步退货记录保留 90 天
+  pending-remind:
+    days: 30          # 待确认退货 30 天后提醒（不删除）
+  audit-log:
+    days: 180         # 审计日志保留 180 天
+  ocr-log:
+    days: 30          # OCR 日志保留 30 天
+  batch-size: 500     # 分批删除每批条数
+  batch-sleep-ms: 100 # 每批之间 sleep 毫秒数
+
+# 导出管控（F02，v2.1 新增）
+export:
+  max-rows-per-export: 1000   # 单次导出最多条数
+  max-exports-per-day: 5      # 每人每日最多导出次数
+
 # 异常监控告警（F12）
 # 业务参数，非密钥；复用 feishu.bot-webhook 发送飞书机器人卡片告警
 alert:

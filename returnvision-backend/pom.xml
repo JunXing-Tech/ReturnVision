@@ -44,6 +44,13 @@
             <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
 
+        <!-- Apache POI（F02 Excel 导出 + 水印） -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>5.2.5</version>
+        </dependency>
+
         <!-- JJWT（JWT 生成与解析，F01） -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>

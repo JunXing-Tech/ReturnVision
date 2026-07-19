@@ -70,6 +70,9 @@ public class UploadController {
     private final ObjectMapper objectMapper;
     private final AlertService alertService;
 
+    /** F02 超期预警：用于 Dashboard 统计待确认超期数量 */
+    private final tech.jxing.returnvision.retention.RetentionScheduler retentionScheduler;
+
     /** SSE异步处理线程池（守护线程，不阻塞JVM关闭） */
     private final ExecutorService sseExecutor = Executors.newFixedThreadPool(4, r -> {
         Thread t = new Thread(r, "sse-worker");
@@ -85,7 +88,8 @@ public class UploadController {
                             FeishuService feishuService,
                             ReturnRecordMapper recordMapper,
                             ObjectMapper objectMapper,
-                            AlertService alertService) {
+                            AlertService alertService,
+                            tech.jxing.returnvision.retention.RetentionScheduler retentionScheduler) {
         this.cosClientService = cosClientService;
         this.crossValidatorService = crossValidatorService;
         this.llmAnalyzerService = llmAnalyzerService;
@@ -95,6 +99,7 @@ public class UploadController {
         this.recordMapper = recordMapper;
         this.objectMapper = objectMapper;
         this.alertService = alertService;
+        this.retentionScheduler = retentionScheduler;
     }
 
     @PreDestroy
@@ -418,6 +423,9 @@ public class UploadController {
                 .orderByDesc(ReturnRecord::getCreatedAt);
         List<ReturnRecord> recent = recordMapper.selectPage(recentPage, recentWrapper).getRecords();
 
+        // 步骤4.5：F02 超期预警 -- 待确认超过 24h 的数量
+        long overdueCount = retentionScheduler.countOverduePending();
+
         // 步骤5：组装返回
         Map<String, Object> stats = new HashMap<>();
         stats.put("today_count", todayCount);
@@ -427,8 +435,9 @@ public class UploadController {
         stats.put("review_count", confirmedCount);
         stats.put("trend", trend);
         stats.put("recent_records", recent);
-        log.info("[仪表盘] 统计完成，今日={}，总计={}，待确认={}，已同步={}",
-                todayCount, totalCount, pendingCount, syncedCount);
+        stats.put("overdue_count", overdueCount);
+        log.info("[仪表盘] 统计完成，今日={}，总计={}，待确认={}，已同步={}，超期待确认={}",
+                todayCount, totalCount, pendingCount, syncedCount, overdueCount);
         return ResponseResult.success(stats);
     }
 

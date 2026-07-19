@@ -342,4 +342,20 @@ export default {
       },
     });
   },
+
+  // ==================== 数据导出接口（F02） ====================
+
+  /**
+   * 导出退货记录（返回 Excel 文件流）
+   * 注意：用 axios 的 responseType: 'blob' 接收二进制流
+   */
+  exportRecords({ status, startDate, endDate } = {}) {
+    return api.post('/records/export', {
+      status: status || '',
+      start_date: startDate || '',
+      end_date: endDate || '',
+    }, {
+      responseType: 'blob',
+    });
+  },
 };
