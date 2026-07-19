@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>退运智录</title>
+    <style id="theme-vars">
+/* ============================================================
+   退运智录 · 源力（Volcengine）设计系统品牌样式
+   基于 dl_builtin_volcengine token 生成，brand prefix: yuanli
+   中文优先字体 + 品牌蓝主色 + 完整状态色 ramp + 5 级阴影
+   ============================================================ */
+
+:root {
+  /* ===== 语义色（Tailwind 桥接，fill-html-head.mjs 检测）===== */
+  --yuanli-background: #ffffff;
+  --yuanli-foreground: #0c0d0e;
+  --yuanli-card: #ffffff;
+  --yuanli-card-foreground: #0c0d0e;
+  --yuanli-popover: #ffffff;
+  --yuanli-popover-foreground: #0c0d0e;
+  --yuanli-primary: #1664ff;          /* 源力品牌蓝 primary-6 */
+  --yuanli-primary-foreground: #ffffff;
+  --yuanli-secondary: #f6f8fa;        /* color-bg-4 */
+  --yuanli-secondary-foreground: #0c0d0e;
+  --yuanli-muted: #f6f8fa;
+  --yuanli-muted-foreground: #737a87; /* color-text-3 */
+  --yuanli-accent: #ebf1ff;           /* primary-2 浅蓝强调底 */
+  --yuanli-accent-foreground: #114ab9;/* primary-8 */
+  --yuanli-destructive: #ee3f38;      /* danger-5 */
+  --yuanli-destructive-foreground: #ffffff;
+  --yuanli-border: #dde2e9;           /* border-2 */
+  --yuanli-input: #dde2e9;
+  --yuanli-ring: #387bff;             /* primary-5 焦点环 */
+
+  /* ===== 图表 5 色（区分退货趋势系列）===== */
+  --yuanli-chart-1: #387bff;          /* 蓝 主系列 */
+  --yuanli-chart-2: #7ccd94;          /* 绿 完成 */
+  --yuanli-chart-3: #f0a50f;          /* 黄 待确认 */
+  --yuanli-chart-4: #ff706d;          /* 红 失败 */
+  --yuanli-chart-5: #86909c;          /* 灰 辅助 */
+
+  /* ===== 侧边栏 ===== */
+  --yuanli-sidebar: #fcfdfe;          /* color-bg-2 */
+  --yuanli-sidebar-foreground: #0c0d0e;
+  --yuanli-sidebar-primary: #1664ff;
+  --yuanli-sidebar-primary-foreground: #ffffff;
+  --yuanli-sidebar-accent: #f6f8fa;
+  --yuanli-sidebar-accent-foreground: #0c0d0e;
+  --yuanli-sidebar-border: #eaedf1;
+
+  /* ===== 状态色完整 ramp（退运智录多状态高频核对）===== */
+  --yuanli-success: #309256;          /* success-5 */
+  --yuanli-success-strong: #2a814b;   /* success-6 */
+  --yuanli-success-subtle: #eef9f1;   /* success-1 浅底徽章 */
+  --yuanli-success-foreground: #ffffff;
+
+  --yuanli-warning: #bd7e00;          /* warning-6 */
+  --yuanli-warning-strong: #d08d06;   /* warning-5 */
+  --yuanli-warning-subtle: #fef8eb;   /* warning-1 浅底徽章 */
+  --yuanli-warning-foreground: #ffffff;
+
+  --yuanli-danger: #ee3f38;           /* danger-5 */
+  --yuanli-danger-strong: #d7312a;    /* danger-6 */
+  --yuanli-danger-subtle: #fdf5f5;    /* danger-1 浅底徽章 */
+  --yuanli-danger-foreground: #ffffff;
+
+  --yuanli-info: #1664ff;
+  --yuanli-info-subtle: #ebf1ff;
+
+  /* ===== 中性色阶（源力 grey/text/bg 体系）===== */
+  --yuanli-color-text-1: #0c0d0e;     /* 主文字 */
+  --yuanli-color-text-2: #42464e;     /* 次级文字 */
+  --yuanli-color-text-3: #737a87;     /* 辅助文字/标签 */
+  --yuanli-color-text-4: #c7ccd6;     /* 占位/禁用 */
+
+  --yuanli-color-bg-1: #ffffff;       /* 卡片底 */
+  --yuanli-color-bg-2: #fcfdfe;       /* 侧边栏底 */
+  --yuanli-color-bg-3: #fafbfc;       /* 次级容器 */
+  --yuanli-color-bg-4: #f6f8fa;       /* 强调态底/muted */
+  --yuanli-color-bg-5: #f1f3f5;       /* hover 底 */
+
+  --yuanli-border-1: #eaedf1;         /* 极淡边框 */
+  --yuanli-border-2: #dde2e9;         /* 标准边框 */
+  --yuanli-border-3: #d1d5da;         /* 强调边框 */
+  --yuanli-border-strong: #959da5;    /* 强边框 */
+
+  /* ===== 字体（中文优先，运营场景可读性）===== */
+  --yuanli-font-sans: "PingFang SC", "Microsoft YaHei", "Roboto", "Helvetica Neue", Arial, sans-serif;
+  --yuanli-font-mono: "SFMono-Regular", "SF Mono", "Roboto Mono", "Consolas", monospace;
+  --yuanli-font-display: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+
+  /* ===== 字号尺度（密集工作台）===== */
+  --yuanli-font-size-display: 24px;
+  --yuanli-font-size-h1: 20px;
+  --yuanli-font-size-h2: 18px;
+  --yuanli-font-size-h3: 16px;
+  --yuanli-font-size-h4: 14px;
+  --yuanli-font-size-body: 13px;
+  --yuanli-font-size-small: 12px;
+  --yuanli-font-size-caption: 11px;
+  --yuanli-font-size-eyebrow: 11px;
+
+  /* ===== 字重 ===== */
+  --yuanli-font-weight-regular: 400;
+  --yuanli-font-weight-medium: 500;
+  --yuanli-font-weight-semibold: 600;
+
+  /* ===== 行高 ===== */
+  --yuanli-line-height-tight: 1.2;
+  --yuanli-line-height-normal: 1.5;
+  --yuanli-line-height-loose: 1.8;
+
+  /* ===== 圆角 ===== */
+  --yuanli-radius-sm: 4px;
+  --yuanli-radius-md: 8px;
+  --yuanli-radius-lg: 12px;
+  --yuanli-radius-xl: 16px;
+  --yuanli-radius-full: 9999px;
+
+  /* ===== 间距（4px 基准）===== */
+  --yuanli-spacing: 4px;
+  --yuanli-space-1: 4px;
+  --yuanli-space-2: 8px;
+  --yuanli-space-3: 12px;
+  --yuanli-space-4: 16px;
+  --yuanli-space-5: 20px;
+  --yuanli-space-6: 24px;
+  --yuanli-space-8: 32px;
+  --yuanli-space-10: 40px;
+  --yuanli-space-12: 48px;
+
+  /* ===== 阴影（源力 5 级，带层次感）===== */
+  --yuanli-shadow-sm: 0 1px 2px 0 rgba(12, 13, 14, 0.05), 0 1px 1px 0 rgba(12, 13, 14, 0.03);
+  --yuanli-shadow-md: 0 4px 8px -2px rgba(12, 13, 14, 0.07), 0 2px 4px -1px rgba(12, 13, 14, 0.04);
+  --yuanli-shadow-lg: 0 12px 20px -6px rgba(12, 13, 14, 0.08), 0 4px 8px -2px rgba(12, 13, 14, 0.04);
+  --yuanli-shadow-xl: 0 24px 40px -10px rgba(12, 13, 14, 0.10), 0 8px 16px -4px rgba(12, 13, 14, 0.06);
+  --yuanli-shadow-blue: 0 0 0 1px #1664ff, 0 2px 1px 0 rgba(0, 0, 0, 0.15);
+
+  /* ===== 尺度 ===== */
+  --yuanli-nav-height: 56px;
+  --yuanli-sidebar-width: 240px;
+  --yuanli-max-content: 1440px;
+
+  /* ===== 过渡 ===== */
+  --yuanli-transition: 150ms ease;
+}
+
+/* ============================================================
+   暗色覆盖（基于源力 dark token，运营偏好开关）
+   ============================================================ */
+.dark {
+  --yuanli-background: #000b1a;        /* surface-dim */
+  --yuanli-foreground: #ffffff;
+  --yuanli-card: #0c0d0e;              /* color-fill-4 */
+  --yuanli-card-foreground: #ffffff;
+  --yuanli-popover: #1d2129;           /* color-sidebar dark */
+  --yuanli-popover-foreground: #ffffff;
+  --yuanli-primary: #fafafa;           /* dark primary 反相 */
+  --yuanli-primary-foreground: #0c0d0e;
+  --yuanli-secondary: #1d2129;
+  --yuanli-secondary-foreground: #ffffff;
+  --yuanli-muted: #1d2129;
+  --yuanli-muted-foreground: #a1a1aa;
+  --yuanli-accent: #2a3440;            /* surface-container-high */
+  --yuanli-accent-foreground: #ffffff;
+  --yuanli-destructive: #ff706d;       /* danger-4 dark */
+  --yuanli-destructive-foreground: #1f0a0c;
+  --yuanli-border: #2a3440;
+  --yuanli-input: #2a3440;
+  --yuanli-ring: #387bff;
+
+  --yuanli-chart-1: #387bff;
+  --yuanli-chart-2: #7ccd94;
+  --yuanli-chart-3: #f9c76d;
+  --yuanli-chart-4: #ff706d;
+  --yuanli-chart-5: #86909c;
+
+  --yuanli-sidebar: #1d2129;
+  --yuanli-sidebar-foreground: #ffffff;
+  --yuanli-sidebar-primary: #fafafa;
+  --yuanli-sidebar-primary-foreground: #0c0d0e;
+  --yuanli-sidebar-accent: #2a3440;
+  --yuanli-sidebar-accent-foreground: #ffffff;
+  --yuanli-sidebar-border: #2a3440;
+
+  --yuanli-success: #7ccd94;
+  --yuanli-success-strong: #7ccd94;
+  --yuanli-success-subtle: #1a2e1f;
+  --yuanli-warning: #f9c76d;
+  --yuanli-warning-strong: #f9c76d;
+  --yuanli-warning-subtle: #2e2410;
+  --yuanli-danger: #ff706d;
+  --yuanli-danger-strong: #ff706d;
+  --yuanli-danger-subtle: #2a1416;
+  --yuanli-info-subtle: #0c1a2e;
+
+  --yuanli-color-text-1: #ffffff;
+  --yuanli-color-text-2: #c9cdd4;
+  --yuanli-color-text-3: #a1a1aa;
+  --yuanli-color-text-4: #676b72;
+
+  --yuanli-color-bg-1: #0c0d0e;
+  --yuanli-color-bg-2: #1d2129;
+  --yuanli-color-bg-3: #1d2129;
+  --yuanli-color-bg-4: #2a3440;
+  --yuanli-color-bg-5: #2a3440;
+
+  --yuanli-border-1: #2a3440;
+  --yuanli-border-2: #2a3440;
+  --yuanli-border-3: #3f3f46;
+  --yuanli-border-strong: #4e5969;
+
+  --yuanli-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --yuanli-shadow-md: 0 4px 8px -2px rgba(0, 0, 0, 0.4);
+  --yuanli-shadow-lg: 0 12px 20px -6px rgba(0, 0, 0, 0.45);
+  --yuanli-shadow-xl: 0 24px 40px -10px rgba(0, 0, 0, 0.5);
+}
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-background: var(--yuanli-background);
+    --color-foreground: var(--yuanli-foreground);
+    --color-card: var(--yuanli-card);
+    --color-card-foreground: var(--yuanli-card-foreground);
+    --color-popover: var(--yuanli-popover);
+    --color-popover-foreground: var(--yuanli-popover-foreground);
+    --color-primary: var(--yuanli-primary);
+    --color-primary-foreground: var(--yuanli-primary-foreground);
+    --color-secondary: var(--yuanli-secondary);
+    --color-secondary-foreground: var(--yuanli-secondary-foreground);
+    --color-muted: var(--yuanli-muted);
+    --color-muted-foreground: var(--yuanli-muted-foreground);
+    --color-accent: var(--yuanli-accent);
+    --color-accent-foreground: var(--yuanli-accent-foreground);
+    --color-destructive: var(--yuanli-destructive);
+    --color-destructive-foreground: var(--yuanli-destructive-foreground);
+    --color-border: var(--yuanli-border);
+    --color-input: var(--yuanli-input);
+    --color-ring: var(--yuanli-ring);
+    --color-chart-1: var(--yuanli-chart-1);
+    --color-chart-2: var(--yuanli-chart-2);
+    --color-chart-3: var(--yuanli-chart-3);
+    --color-chart-4: var(--yuanli-chart-4);
+    --color-chart-5: var(--yuanli-chart-5);
+    --color-sidebar: var(--yuanli-sidebar);
+    --color-sidebar-foreground: var(--yuanli-sidebar-foreground);
+    --color-sidebar-primary: var(--yuanli-sidebar-primary);
+    --color-sidebar-primary-foreground: var(--yuanli-sidebar-primary-foreground);
+    --color-sidebar-accent: var(--yuanli-sidebar-accent);
+    --color-sidebar-accent-foreground: var(--yuanli-sidebar-accent-foreground);
+    --radius-sm: var(--yuanli-radius-sm);
+    --radius-md: var(--yuanli-radius-md);
+    --radius-lg: var(--yuanli-radius-lg);
+    --radius-xl: var(--yuanli-radius-xl);
+  }
+  @layer base {
+    body { background: var(--yuanli-background); color: var(--yuanli-foreground); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style id="semantic-token-fallback">
+      .bg-background { background-color: var(--yuanli-background); }
+      .text-background { color: var(--yuanli-background); }
+      .border-background { border-color: var(--yuanli-background); }
+      .ring-background { --tw-ring-color: var(--yuanli-background); }
+      .bg-foreground { background-color: var(--yuanli-foreground); }
+      .text-foreground { color: var(--yuanli-foreground); }
+      .border-foreground { border-color: var(--yuanli-foreground); }
+      .ring-foreground { --tw-ring-color: var(--yuanli-foreground); }
+      .bg-card { background-color: var(--yuanli-card); }
+      .text-card { color: var(--yuanli-card); }
+      .border-card { border-color: var(--yuanli-card); }
+      .ring-card { --tw-ring-color: var(--yuanli-card); }
+      .bg-card-foreground { background-color: var(--yuanli-card-foreground); }
+      .text-card-foreground { color: var(--yuanli-card-foreground); }
+      .border-card-foreground { border-color: var(--yuanli-card-foreground); }
+      .ring-card-foreground { --tw-ring-color: var(--yuanli-card-foreground); }
+      .bg-popover { background-color: var(--yuanli-popover); }
+      .text-popover { color: var(--yuanli-popover); }
+      .border-popover { border-color: var(--yuanli-popover); }
+      .ring-popover { --tw-ring-color: var(--yuanli-popover); }
+      .bg-popover-foreground { background-color: var(--yuanli-popover-foreground); }
+      .text-popover-foreground { color: var(--yuanli-popover-foreground); }
+      .border-popover-foreground { border-color: var(--yuanli-popover-foreground); }
+      .ring-popover-foreground { --tw-ring-color: var(--yuanli-popover-foreground); }
+      .bg-primary { background-color: var(--yuanli-primary); }
+      .text-primary { color: var(--yuanli-primary); }
+      .border-primary { border-color: var(--yuanli-primary); }
+      .ring-primary { --tw-ring-color: var(--yuanli-primary); }
+      .bg-primary-foreground { background-color: var(--yuanli-primary-foreground); }
+      .text-primary-foreground { color: var(--yuanli-primary-foreground); }
+      .border-primary-foreground { border-color: var(--yuanli-primary-foreground); }
+      .ring-primary-foreground { --tw-ring-color: var(--yuanli-primary-foreground); }
+      .bg-secondary { background-color: var(--yuanli-secondary); }
+      .text-secondary { color: var(--yuanli-secondary); }
+      .border-secondary { border-color: var(--yuanli-secondary); }
+      .ring-secondary { --tw-ring-color: var(--yuanli-secondary); }
+      .bg-secondary-foreground { background-color: var(--yuanli-secondary-foreground); }
+      .text-secondary-foreground { color: var(--yuanli-secondary-foreground); }
+      .border-secondary-foreground { border-color: var(--yuanli-secondary-foreground); }
+      .ring-secondary-foreground { --tw-ring-color: var(--yuanli-secondary-foreground); }
+      .bg-muted { background-color: var(--yuanli-muted); }
+      .text-muted { color: var(--yuanli-muted); }
+      .border-muted { border-color: var(--yuanli-muted); }
+      .ring-muted { --tw-ring-color: var(--yuanli-muted); }
+      .bg-muted-foreground { background-color: var(--yuanli-muted-foreground); }
+      .text-muted-foreground { color: var(--yuanli-muted-foreground); }
+      .border-muted-foreground { border-color: var(--yuanli-muted-foreground); }
+      .ring-muted-foreground { --tw-ring-color: var(--yuanli-muted-foreground); }
+      .bg-accent { background-color: var(--yuanli-accent); }
+      .text-accent { color: var(--yuanli-accent); }
+      .border-accent { border-color: var(--yuanli-accent); }
+      .ring-accent { --tw-ring-color: var(--yuanli-accent); }
+      .bg-accent-foreground { background-color: var(--yuanli-accent-foreground); }
+      .text-accent-foreground { color: var(--yuanli-accent-foreground); }
+      .border-accent-foreground { border-color: var(--yuanli-accent-foreground); }
+      .ring-accent-foreground { --tw-ring-color: var(--yuanli-accent-foreground); }
+      .bg-destructive { background-color: var(--yuanli-destructive); }
+      .text-destructive { color: var(--yuanli-destructive); }
+      .border-destructive { border-color: var(--yuanli-destructive); }
+      .ring-destructive { --tw-ring-color: var(--yuanli-destructive); }
+      .bg-destructive-foreground { background-color: var(--yuanli-destructive-foreground); }
+      .text-destructive-foreground { color: var(--yuanli-destructive-foreground); }
+      .border-destructive-foreground { border-color: var(--yuanli-destructive-foreground); }
+      .ring-destructive-foreground { --tw-ring-color: var(--yuanli-destructive-foreground); }
+      .bg-border { background-color: var(--yuanli-border); }
+      .text-border { color: var(--yuanli-border); }
+      .border-border { border-color: var(--yuanli-border); }
+      .ring-border { --tw-ring-color: var(--yuanli-border); }
+      .bg-input { background-color: var(--yuanli-input); }
+      .text-input { color: var(--yuanli-input); }
+      .border-input { border-color: var(--yuanli-input); }
+      .ring-input { --tw-ring-color: var(--yuanli-input); }
+      .bg-ring { background-color: var(--yuanli-ring); }
+      .text-ring { color: var(--yuanli-ring); }
+      .border-ring { border-color: var(--yuanli-ring); }
+      .ring-ring { --tw-ring-color: var(--yuanli-ring); }
+      .bg-chart-1 { background-color: var(--yuanli-chart-1); }
+      .text-chart-1 { color: var(--yuanli-chart-1); }
+      .border-chart-1 { border-color: var(--yuanli-chart-1); }
+      .ring-chart-1 { --tw-ring-color: var(--yuanli-chart-1); }
+      .bg-chart-2 { background-color: var(--yuanli-chart-2); }
+      .text-chart-2 { color: var(--yuanli-chart-2); }
+      .border-chart-2 { border-color: var(--yuanli-chart-2); }
+      .ring-chart-2 { --tw-ring-color: var(--yuanli-chart-2); }
+      .bg-chart-3 { background-color: var(--yuanli-chart-3); }
+      .text-chart-3 { color: var(--yuanli-chart-3); }
+      .border-chart-3 { border-color: var(--yuanli-chart-3); }
+      .ring-chart-3 { --tw-ring-color: var(--yuanli-chart-3); }
+      .bg-chart-4 { background-color: var(--yuanli-chart-4); }
+      .text-chart-4 { color: var(--yuanli-chart-4); }
+      .border-chart-4 { border-color: var(--yuanli-chart-4); }
+      .ring-chart-4 { --tw-ring-color: var(--yuanli-chart-4); }
+      .bg-chart-5 { background-color: var(--yuanli-chart-5); }
+      .text-chart-5 { color: var(--yuanli-chart-5); }
+      .border-chart-5 { border-color: var(--yuanli-chart-5); }
+      .ring-chart-5 { --tw-ring-color: var(--yuanli-chart-5); }
+      .bg-sidebar { background-color: var(--yuanli-sidebar); }
+      .text-sidebar { color: var(--yuanli-sidebar); }
+      .border-sidebar { border-color: var(--yuanli-sidebar); }
+      .ring-sidebar { --tw-ring-color: var(--yuanli-sidebar); }
+      .bg-sidebar-foreground { background-color: var(--yuanli-sidebar-foreground); }
+      .text-sidebar-foreground { color: var(--yuanli-sidebar-foreground); }
+      .border-sidebar-foreground { border-color: var(--yuanli-sidebar-foreground); }
+      .ring-sidebar-foreground { --tw-ring-color: var(--yuanli-sidebar-foreground); }
+      .bg-sidebar-primary { background-color: var(--yuanli-sidebar-primary); }
+      .text-sidebar-primary { color: var(--yuanli-sidebar-primary); }
+      .border-sidebar-primary { border-color: var(--yuanli-sidebar-primary); }
+      .ring-sidebar-primary { --tw-ring-color: var(--yuanli-sidebar-primary); }
+      .bg-sidebar-primary-foreground { background-color: var(--yuanli-sidebar-primary-foreground); }
+      .text-sidebar-primary-foreground { color: var(--yuanli-sidebar-primary-foreground); }
+      .border-sidebar-primary-foreground { border-color: var(--yuanli-sidebar-primary-foreground); }
+      .ring-sidebar-primary-foreground { --tw-ring-color: var(--yuanli-sidebar-primary-foreground); }
+      .bg-sidebar-accent { background-color: var(--yuanli-sidebar-accent); }
+      .text-sidebar-accent { color: var(--yuanli-sidebar-accent); }
+      .border-sidebar-accent { border-color: var(--yuanli-sidebar-accent); }
+      .ring-sidebar-accent { --tw-ring-color: var(--yuanli-sidebar-accent); }
+      .bg-sidebar-accent-foreground { background-color: var(--yuanli-sidebar-accent-foreground); }
+      .text-sidebar-accent-foreground { color: var(--yuanli-sidebar-accent-foreground); }
+      .border-sidebar-accent-foreground { border-color: var(--yuanli-sidebar-accent-foreground); }
+      .ring-sidebar-accent-foreground { --tw-ring-color: var(--yuanli-sidebar-accent-foreground); }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body class="min-h-screen font-sans antialiased">
+    <main>
+    </main>
+    <script>lucide.createIcons();</script>
+</body>
+</html>
