@@ -228,6 +228,33 @@ done
 grep -B1 -E "@(Post|Put|Delete)Mapping" Controller.java | grep -v "@AuditLog" | grep "Mapping"
 ```
 
+**DDL 变更升级验证**（针对"加字段/改字段"类变更）：
+
+当给已存在的表加字段时，**必须同时在 schema.sql 加对应的 ALTER 语句**，不能只改 CREATE TABLE。因为 `CREATE TABLE IF NOT EXISTS` 对已存在的表不生效，已部署的环境不会自动加列。
+
+```sql
+-- 错误做法：只改 CREATE TABLE，已部署环境升级后报 "Unknown column"
+CREATE TABLE IF NOT EXISTS ocr_log (
+    ...
+    field_confidence JSON,  -- 新字段
+    ...
+);
+
+-- 正确做法：CREATE TABLE 改完后，再加一条 ALTER（continue-on-error 忽略重复列错误）
+CREATE TABLE IF NOT EXISTS ocr_log (
+    ...
+    field_confidence JSON,  -- 新环境建表用
+    ...
+);
+-- 已存在的表用 ALTER 升级
+ALTER TABLE ocr_log ADD COLUMN field_confidence JSON COMMENT 'F05 字段级置信度';
+```
+
+**审查第 10 项"DDL 变更兼容历史数据"必须包含**：
+- [ ] 新表结构是否兼容（加列允许 NULL）
+- [ ] **已存在的表如何升级**（schema.sql 是否有对应的 ALTER 语句）
+- [ ] **已部署环境如何应用**（重启后 schema.sql 是否会自动执行 ALTER）
+
 **原则**：用户看到的每个检查点都应是"已自审 + 已修复 + 有证据"的状态。
 
 #### API 存在性验证（L2/L3 必做）

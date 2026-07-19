@@ -49,6 +49,9 @@ CREATE TABLE IF NOT EXISTS ocr_log (
     created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- F05 增量字段（已存在的 ocr_log 表添加新列，continue-on-error 忽略重复列错误）
+ALTER TABLE ocr_log ADD COLUMN field_confidence JSON COMMENT 'F05 字段级置信度';
+
 -- ============================================================
 -- F01 鉴权表（v2.1 新增）
 -- 详见 docs/05 第 4.5.8 节
