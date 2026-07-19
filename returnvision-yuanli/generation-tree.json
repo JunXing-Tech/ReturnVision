@@ -1,0 +1,58 @@
+{
+  "root": {
+    "nodeId": "gen-project-shell",
+    "kind": "project-shell",
+    "pageIds": ["page-dashboard", "page-recognition", "page-recognition-processing", "page-records"],
+    "output": "partials/project-shell.html",
+    "sharedRegions": ["sidebar", "topbar", "app-shell grid layout", "theme-vars style block"],
+    "privateRegions": [],
+    "mutableSlots": ["activeNavItem", "pageTitle"],
+    "status": "planned",
+    "children": [
+      {
+        "nodeId": "gen-page-dashboard",
+        "kind": "page-leaf",
+        "pageIds": ["page-dashboard"],
+        "output": "pages/dashboard.html",
+        "sharedRegions": [],
+        "privateRegions": ["dashboard screen content"],
+        "mutableSlots": ["activeNavItem", "pageTitle"],
+        "status": "planned",
+        "children": []
+      },
+      {
+        "nodeId": "gen-page-recognition",
+        "kind": "page-leaf",
+        "pageIds": ["page-recognition"],
+        "output": "pages/recognition.html",
+        "sharedRegions": [],
+        "privateRegions": ["recognition screen content"],
+        "mutableSlots": ["activeNavItem", "pageTitle"],
+        "status": "planned",
+        "children": []
+      },
+      {
+        "nodeId": "gen-page-recognition-processing",
+        "kind": "page-leaf",
+        "pageIds": ["page-recognition-processing"],
+        "output": "pages/recognition-processing.html",
+        "sharedRegions": [],
+        "privateRegions": ["recognition-processing screen content"],
+        "mutableSlots": ["activeNavItem", "pageTitle"],
+        "status": "planned",
+        "children": []
+      },
+      {
+        "nodeId": "gen-page-records",
+        "kind": "page-leaf",
+        "pageIds": ["page-records"],
+        "output": "pages/records.html",
+        "sharedRegions": [],
+        "privateRegions": ["records screen content"],
+        "mutableSlots": ["activeNavItem", "pageTitle"],
+        "status": "planned",
+        "children": []
+      }
+    ]
+  }
+}
