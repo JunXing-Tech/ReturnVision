@@ -212,9 +212,9 @@ onMounted(async () => {
     // 飞书 OAuth 回调
     try {
       const resp = await api.feishuCallback(code, state);
-      const { access_token, refresh_token, userInfo } = resp.data.data;
+      const { access_token, refresh_token, user } = resp.data.data;
       const { setTokens } = useAuth();
-      setTokens(access_token, refresh_token, userInfo);
+      setTokens(access_token, refresh_token, user);
       // 清理 URL 参数
       window.history.replaceState({}, document.title, window.location.pathname);
     } catch (err) {
