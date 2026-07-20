@@ -83,16 +83,18 @@ public class FeishuOAuthService {
      */
     @SuppressWarnings("unchecked")
     public Map<String, String> getUserInfoByCode(String code) throws Exception {
+        log.info("[飞书OAuth] 开始用 code 换 user_access_token，code 长度={}", code.length());
         // 步骤1：换 user_access_token
         Map<String, Object> body = new HashMap<>();
         body.put("grant_type", "authorization_code");
         body.put("code", code);
 
         String tokenResp = postJson(TOKEN_URL, body);
+        log.info("[飞书OAuth] 换 token 返回：{}", tokenResp);
         Map<String, Object> tokenResult = objectMapper.readValue(tokenResp, Map.class);
         Number code0 = (Number) tokenResult.getOrDefault("code", -1);
         if (code0.intValue() != 0) {
-            log.error("[飞书OAuth] 换 token 失败：{}", tokenResult.get("msg"));
+            log.error("[飞书OAuth] 换 token 失败：code={}, msg={}", code0, tokenResult.get("msg"));
             return null;
         }
 
@@ -120,6 +122,8 @@ public class FeishuOAuthService {
             Map<String, String> userInfo = new HashMap<>();
             userInfo.put("feishu_user_id", String.valueOf(data.get("user_id")));
             userInfo.put("name", String.valueOf(data.getOrDefault("name", "")));
+            log.info("[飞书OAuth] 成功获取用户信息：feishu_user_id={}, name={}",
+                    userInfo.get("feishu_user_id"), userInfo.get("name"));
             return userInfo;
         }
     }

@@ -205,15 +205,20 @@ public class AuthController {
     public ResponseResult<Map<String, Object>> feishuCallback(@RequestBody Map<String, String> request) {
         // 步骤1：取参数
         String code = request.get("code");
+        log.info("[鉴权] 飞书 OAuth 回调进入，code 长度={}", code == null ? 0 : code.length());
         if (code == null || code.isEmpty()) {
+            log.warn("[鉴权] 飞书回调 code 为空，request keys={}", request.keySet());
             throw new BizException(1004, "飞书授权码不能为空");
         }
 
         // 步骤2-3：登录并返回
         try {
             Map<String, Object> result = authService.feishuLogin(code);
+            log.info("[鉴权] 飞书 OAuth 登录成功，username={}", result.get("username"));
             return ResponseResult.success(result);
         } catch (BizException e) {
+            // F01 调试日志：明确打印错误码和消息，便于排查"未绑定/授权失败"
+            log.warn("[鉴权] 飞书 OAuth 业务异常：code={}, msg={}", e.getCode(), e.getMessage());
             throw e;
         } catch (Exception e) {
             log.error("[鉴权] 飞书 OAuth 登录异常", e);
