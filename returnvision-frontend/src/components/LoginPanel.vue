@@ -132,6 +132,13 @@ import { useAuth } from '../composables/useAuth';
 
 const emit = defineEmits(['login-success']);
 
+// F01 飞书登录回调失败时，父组件 App.vue 调用此方法显示错误
+const setError = (msg) => {
+  errorMsg.value = msg;
+};
+
+defineExpose({ setError });
+
 const { setTokens } = useAuth();
 
 // 账号密码表单状态

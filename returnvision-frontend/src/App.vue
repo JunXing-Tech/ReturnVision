@@ -1,6 +1,6 @@
 <template>
   <!-- 登录页（未认证时显示） -->
-  <LoginPanel v-if="!isAuthenticated" @login-success="handleLoginSuccess" />
+  <LoginPanel v-if="!isAuthenticated" ref="loginPanelRef" @login-success="handleLoginSuccess" />
 
   <!-- 步骤1：app-shell 网格布局（侧边栏 + 主内容区） -->
   <div v-else class="app-shell">
@@ -118,6 +118,9 @@ const { isDark, toggleTheme } = useTheme();
 // 步骤4.2：鉴权状态
 const { isAuthenticated, user, clear } = useAuth();
 
+// 飞书登录回调失败时，调 LoginPanel 的 setError 显示错误
+const loginPanelRef = ref(null);
+
 // 跨页面编辑数据传递：RecordsPanel 编辑 -> RecognitionPanel
 const pendingEditRecord = ref(null);
 
@@ -215,7 +218,12 @@ onMounted(async () => {
       // 清理 URL 参数
       window.history.replaceState({}, document.title, window.location.pathname);
     } catch (err) {
+      // F01 修复：把后端错误信息显示到登录页，不再只 console.error
+      const msg = err.response?.data?.msg || '飞书登录失败，请重试或联系管理员';
+      loginPanelRef.value?.setError(msg);
       console.error('飞书登录失败', err);
+      // 清理 URL 参数，避免刷新时重复回调
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
   }
 });
