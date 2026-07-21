@@ -432,6 +432,30 @@ public class UploadController {
                 .orderByAsc("DATE(created_at)");
         List<Map<String, Object>> trend = recordMapper.selectMaps(trendWrapper);
 
+        // 步骤3.1：4 个 KPI 各自的近 7 天趋势序列（供前端 sparkline 渲染真实趋势）
+        // pending_trend: 每日新增的待确认记录数（status=pending 且当日创建）
+        QueryWrapper<ReturnRecord> pendingTrendWrapper = new QueryWrapper<>();
+        pendingTrendWrapper.select("DATE(created_at) as date", "COUNT(*) as count")
+                .eq("status", "pending")
+                .ge("created_at", weekAgo)
+                .groupBy("DATE(created_at)")
+                .orderByAsc("DATE(created_at)");
+        List<Map<String, Object>> pendingTrend = recordMapper.selectMaps(pendingTrendWrapper);
+
+        // synced_trend: 每日新增的已同步记录数（status=synced 且当日创建）
+        QueryWrapper<ReturnRecord> syncedTrendWrapper = new QueryWrapper<>();
+        syncedTrendWrapper.select("DATE(created_at) as date", "COUNT(*) as count")
+                .eq("status", "synced")
+                .ge("created_at", weekAgo)
+                .groupBy("DATE(created_at)")
+                .orderByAsc("DATE(created_at)");
+        List<Map<String, Object>> syncedTrend = recordMapper.selectMaps(syncedTrendWrapper);
+
+        // total_trend: 每日累计总量（截至该日的所有记录数，用于"总记录"卡片的递增趋势）
+        // 用子查询：SELECT DATE(created_at) as date, (SELECT COUNT(*) FROM return_record r2 WHERE r2.created_at <= CONCAT(DATE(r.created_at), ' 23:59:59')) as count ...
+        // 简化实现：取每日新增后前端累加，或直接查每日累计。这里用每日新增（与 trend 相同），前端做累加计算累计趋势。
+        // today_trend 复用 trend（每日新增总量）
+
         // 步骤4：最近5条记录
         Page<ReturnRecord> recentPage = new Page<>(1, 5);
         LambdaQueryWrapper<ReturnRecord> recentWrapper = new LambdaQueryWrapper<ReturnRecord>()
@@ -449,6 +473,8 @@ public class UploadController {
         stats.put("synced_count", syncedCount);
         stats.put("review_count", confirmedCount);
         stats.put("trend", trend);
+        stats.put("pending_trend", pendingTrend);
+        stats.put("synced_trend", syncedTrend);
         stats.put("recent_records", recent);
         stats.put("overdue_count", overdueCount);
         log.info("[仪表盘] 统计完成，今日={}，总计={}，待确认={}，已同步={}，超期待确认={}",
