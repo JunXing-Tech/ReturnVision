@@ -375,6 +375,56 @@ tech.jxing.returnvision
 
 ---
 
+## 测试清单工作流（必读）
+
+> 详细规范见 [test-checklists/README.md](test-checklists/README.md)（v1.1）。本节是入口提示，AI 每次开发新模块或优化功能前必须先读 test-checklists/README.md。
+
+### 现有测试资产盘点（截至 2026-07-21）
+
+| 测试类 | 测试方法数 | 覆盖范围 |
+|--------|----------|---------|
+| SanityTest | 1 | 基础设施冒烟 |
+| ValidatorServiceTest | 28（参数化展开） | 5 项校验所有分支 |
+| WaybillValidatorTest | 25（参数化展开） | 8 家快递前缀校验 |
+| OcrCrossValidatorServiceTest | 24 | 5 种仲裁 + 字段比对 + 埋点 |
+
+合计 78 个测试全绿。`mvn test` 一键回归。
+
+### 每次开发新模块/优化功能必走流程
+
+1. **开工前**：在 `test-checklists/` 维护清单，文件名 `YYYY-MM-DD_功能名.md`
+2. **6 节固定结构**：〇红绿灯 + 一基本信息 + 二自动化测试项 + 三人工必须验证项 + 四回归选择 + 五自审记录 + 六执行记录
+3. **自审三阶段**（按顺序，见 README §5.1）：
+   - 5.1 **角色切换通读**（大改三轮 / 小改至少一轮 / 微改可跳过）
+   - 5.2 **固定检查表**（按需勾选，v1.1 起 5 项不必全勾）
+   - 5.3 **AI 反向核对**（按需触发：验收要点 ≥10 / 跨模块 / 权限矩阵变更）
+4. **检查点暂停**：本步测试通过后，把"六、执行记录"回填 ✅/❌，再向用户汇报检查点
+5. **提交并 push**：测试代码 + 清单一并 commit，不要分两次
+
+### 门禁红线（不可触碰）
+
+| 红线 | 说明 |
+|------|------|
+| ❌ 跳过清单直接写代码 | 任何"修改业务逻辑"的改动必须先有清单 |
+| ❌ 把清单当事后补 | 清单先写 → 自审 → 再写代码是核心机制，事后补无效 |
+| ❌ 测试不绿就提交 | `mvn test` 必须跑通才进检查点 |
+| ✅ 清单结构按 README v1.1 | 字段不拍脑袋加、不拍脑袋删，需升级时改 README |
+
+### 已知限制（不要惊讶）
+
+- 当前无前端测试（Phase 4 后引入 Vitest/Playwright）
+- 当前无 Controller 契约测试（Phase 3 引入）
+- 当前无 E2E / LLM 评估（Phase 4 引入）
+- 单元测试仅覆盖纯逻辑 + OcrCrossValidatorService 核心业务点
+- `application-test.yml` 用空凭证触发降级，**不调用真实外部服务**
+
+### CI 守门
+
+GitHub Actions（[.github/workflows/ci.yml](.github/workflows/ci.yml)）在 push 到 main 或 PR 时自动跑 `mvn test`。
+**测试不绿 = push 被红叉标记 = 不能进 main**。单人开发的"另一个人"就是 CI。
+
+---
+
 ## 业务流程速览
 
 ```
