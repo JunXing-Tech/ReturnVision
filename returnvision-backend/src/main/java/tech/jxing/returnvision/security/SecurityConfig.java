@@ -1,6 +1,7 @@
 package tech.jxing.returnvision.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -10,6 +11,9 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -22,6 +26,7 @@ import tech.jxing.returnvision.common.ResponseResult;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 【鉴权模块】Spring Security 配置
@@ -62,6 +67,10 @@ public class SecurityConfig {
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             // 路径权限
             .authorizeHttpRequests(auth -> auth
+                // ASYNC 分发跳过授权：SseEmitter 等异步返回值在 emitter.complete() 后会触发 ASYNC 分发，
+                // 初始请求已通过授权检查，ASYNC 分发是同一请求的延续，无需重复授权。
+                // 否则 ASYNC 线程因 SecurityContext 丢失会抛 AccessDeniedException（response already committed）。
+                .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
                 // 鉴权接口：只公开 login/refresh/feishu/callback（profile/me/logout/change-password 需登录）
                 .requestMatchers("/api/auth/login").permitAll()
                 .requestMatchers("/api/auth/refresh").permitAll()
@@ -75,6 +84,11 @@ public class SecurityConfig {
             // 401 处理：未登录或 token 无效
             .exceptionHandling(eh -> eh
                 .authenticationEntryPoint((request, response, authException) -> {
+                    // 记录 401 日志：定位是哪个接口、什么原因触发未认证
+                    log.warn("[未认证] path={} {}, reason={}: {}",
+                            request.getMethod(), request.getRequestURI(),
+                            authException.getClass().getSimpleName(), authException.getMessage());
+
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                     response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                     response.setCharacterEncoding("UTF-8");
@@ -82,6 +96,19 @@ public class SecurityConfig {
                     response.getWriter().write(objectMapper.writeValueAsString(result));
                 })
                 .accessDeniedHandler((request, response, accessDeniedException) -> {
+                    // 记录路径级 403 日志：定位"已认证但角色不足"的拒绝场景
+                    // 注意：@PreAuthorize 抛出的 AuthorizationDeniedException 走 GlobalExceptionHandler，不走这里
+                    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+                    String username = auth != null ? auth.getName() : "anonymous";
+                    String authorities = auth != null
+                            ? auth.getAuthorities().stream()
+                                .map(GrantedAuthority::getAuthority)
+                                .collect(Collectors.joining(","))
+                            : "";
+                    log.warn("[权限拒绝-路径级] path={} {}, user={}, authorities=[{}], exception={}",
+                            request.getMethod(), request.getRequestURI(),
+                            username, authorities, accessDeniedException.getClass().getSimpleName());
+
                     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                     response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                     response.setCharacterEncoding("UTF-8");

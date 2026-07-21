@@ -62,21 +62,34 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @SuppressWarnings("unchecked")
             List<String> roles = claims.get("roles", List.class);
 
-            // 步骤3：构造 AuthUser 设到 SecurityContext
-            if (userId != null && username != null && roles != null) {
-                AuthUser authUser = new AuthUser(userId, username, null, true, roles);
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(authUser, null, authUser.getAuthorities());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+            // 步骤3：校验关键字段，任一缺失则不设置 SecurityContext
+            if (userId == null || username == null || roles == null) {
+                log.warn("[JWT] token 字段缺失：userId={}, username={}, roles={}, path={} {}",
+                        userId, username, roles, request.getMethod(), request.getRequestURI());
+                filterChain.doFilter(request, response);
+                return;
             }
+
+            // 步骤3.1：roles 为空列表告警——这是"管理员触发 AuthorizationDeniedException"的最可能根因
+            // 场景：sys_user_role 关联缺失 / sys_role 表无对应记录 / AdminInitializer 启动时 ADMIN 角色未预置
+            if (roles.isEmpty()) {
+                log.warn("[JWT] token 中 roles 为空列表：userId={}, username={}, path={} {}（请检查 sys_user_role 关联）",
+                        userId, username, request.getMethod(), request.getRequestURI());
+            }
+
+            // 步骤4：构造 AuthUser 设到 SecurityContext
+            AuthUser authUser = new AuthUser(userId, username, null, true, roles);
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(authUser, null, authUser.getAuthorities());
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
         } catch (JwtException e) {
-            // token 无效/过期，不设 SecurityContext，后续权限判断会返回 401
-            log.debug("[JWT] token 解析失败：{}", e.getMessage());
+            // token 无效/过期：升级为 warn 级别，便于线上排查（原 debug 在生产不可见）
+            log.warn("[JWT] token 解析失败：{}，path={} {}", e.getMessage(), request.getMethod(), request.getRequestURI());
             SecurityContextHolder.clearContext();
         }
 
-        // 步骤4：放行请求
+        // 步骤5：放行请求
         filterChain.doFilter(request, response);
     }
 }

@@ -59,7 +59,11 @@ public class AdminInitializer {
             SysRole adminRole = roleMapper.selectOne(new LambdaQueryWrapper<SysRole>()
                     .eq(SysRole::getRoleCode, ADMIN_ROLE_CODE));
             if (adminRole == null) {
-                log.error("[Admin初始化] ADMIN 角色不存在，请检查 schema.sql 是否预置");
+                // 严重隐患：admin 账号已插入 sys_user，但 sys_role 表无 ADMIN 记录，导致 sys_user_role 无法关联
+                // 后果：admin 登录后 JWT 中 roles=[]，访问 /api/admin/** 会触发 AuthorizationDeniedException
+                // 保持 return 行为（不抛异常，避免阻断启动），但记录明显的 ERROR 日志供运维排查
+                log.error("[Admin初始化] 严重：ADMIN 角色不存在于 sys_role 表，admin 账号(id={})已创建但无角色关联！" +
+                        "请检查 schema.sql 是否预置 ADMIN 角色，否则 admin 登录后会权限拒绝。", admin.getId());
                 return;
             }
 

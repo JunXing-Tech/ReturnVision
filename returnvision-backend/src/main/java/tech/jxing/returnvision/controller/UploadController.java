@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.concurrent.DelegatingSecurityContextExecutor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -35,6 +36,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -73,12 +75,24 @@ public class UploadController {
     /** F02 超期预警：用于 Dashboard 统计待确认超期数量 */
     private final tech.jxing.returnvision.retention.RetentionScheduler retentionScheduler;
 
-    /** SSE异步处理线程池（守护线程，不阻塞JVM关闭） */
-    private final ExecutorService sseExecutor = Executors.newFixedThreadPool(4, r -> {
+    /**
+     * SSE 异步处理线程池（守护线程，不阻塞 JVM 关闭）
+     *
+     * 使用 DelegatingSecurityContextExecutor 包装，确保主线程的 SecurityContext 传播到 sse-worker 线程：
+     *   - 提交任务时（主线程）捕获当前 SecurityContext
+     *   - 工作线程执行任务前 set SecurityContext
+     *   - 工作线程执行任务后 clear SecurityContext
+     * 这样 buildRecord() -> getCurrentAuthUser() 在 SSE 路径下能正确返回当前用户，
+     * 修复 created_by / updated_by 审计字段丢失的问题。
+     *
+     * 内部 ExecutorService 单独持有，用于 @PreDestroy 优雅关闭线程池。
+     */
+    private final ExecutorService sseExecutorDelegate = Executors.newFixedThreadPool(4, r -> {
         Thread t = new Thread(r, "sse-worker");
         t.setDaemon(true);
         return t;
     });
+    private final Executor sseExecutor = new DelegatingSecurityContextExecutor(sseExecutorDelegate);
 
     public UploadController(CosClientService cosClientService,
                             OcrCrossValidatorService crossValidatorService,
@@ -104,13 +118,13 @@ public class UploadController {
 
     @PreDestroy
     public void shutdown() {
-        sseExecutor.shutdown();
+        sseExecutorDelegate.shutdown();
         try {
-            if (!sseExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
-                sseExecutor.shutdownNow();
+            if (!sseExecutorDelegate.awaitTermination(5, TimeUnit.SECONDS)) {
+                sseExecutorDelegate.shutdownNow();
             }
         } catch (InterruptedException e) {
-            sseExecutor.shutdownNow();
+            sseExecutorDelegate.shutdownNow();
         }
     }
 
