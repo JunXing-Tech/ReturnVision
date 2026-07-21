@@ -710,3 +710,100 @@ Content-Disposition: attachment; filename="return_records_20260718_143000.xlsx"
 | 1011 | 导出次数/条数超限 |
 
 ---
+
+## 六、字典管理接口（F08，v2.2 新增）
+
+> 关联：[docs/04 第 4.11 节](./04-详细方案设计.md) F08
+> 权限：查询接口登录即可，CRUD 接口仅 ADMIN（SecurityConfig 通配 `/api/admin/** hasRole('ADMIN')`）
+
+### 6.1 接口列表
+
+| 方法 | 路径 | 权限 | 说明 |
+|------|------|------|------|
+| GET | /api/dict/categories | 登录 | 查询退货分类字典树 |
+| POST | /api/admin/dict/items | ADMIN | 创建字典项 |
+| PUT | /api/admin/dict/items/{id} | ADMIN | 修改字典项（不改 item_code） |
+| DELETE | /api/admin/dict/items/{id} | ADMIN | 停用字典项（软删 + 级联子项） |
+
+### 6.2 查询退货分类字典树
+
+```
+GET /api/dict/categories
+```
+
+**响应**：
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "items": [
+      {
+        "id": 1, "dict_id": 1, "parent_id": null,
+        "item_code": "QUALITY", "item_label": "质量问题",
+        "is_leaf": true, "sort_order": 1, "status": "active",
+        "children": [
+          {
+            "id": 11, "dict_id": 1, "parent_id": 1,
+            "item_code": "QUALITY_BROKEN", "item_label": "破损",
+            "is_leaf": true, "sort_order": 1, "status": "active"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### 6.3 创建字典项
+
+```
+POST /api/admin/dict/items
+Content-Type: application/json
+
+{
+  "dict_id": 1,
+  "parent_id": null,          // 可空，一级项为 null
+  "item_code": "NEW_CAT",     // 必填，同层级内唯一
+  "item_label": "新分类",     // 必填
+  "is_leaf": true,            // 可空，默认 true
+  "sort_order": 5             // 可空，默认 0
+}
+```
+
+**响应**：`{ "code": 0, "data": { "id": 16 } }`
+
+### 6.4 修改字典项
+
+```
+PUT /api/admin/dict/items/{id}
+Content-Type: application/json
+
+{
+  "item_label": "新名称",    // 可空，按需更新
+  "sort_order": 10,
+  "is_leaf": false
+}
+```
+
+> 注意：不允许改 item_code（保护历史 return_records 反查）
+
+### 6.5 停用字典项
+
+```
+DELETE /api/admin/dict/items/{id}
+```
+
+**响应**：`{ "code": 0, "data": { "affected": 3 } }`（含级联子项数）
+
+### 6.6 错误码补充
+
+| 错误码 | 说明 |
+|--------|------|
+| 2100 | 字典项必填字段缺失 / 长度超限 |
+| 2101 | 字典不存在或已停用 |
+| 2102 | 同层级内 item_code 已存在 |
+| 2103 | 父项不存在或不属于该字典 |
+| 2104 | 字典项不存在 |
+
+---

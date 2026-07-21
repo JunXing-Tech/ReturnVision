@@ -368,4 +368,39 @@ export default {
   getOcrStats(days = 7) {
     return api.get('/dashboard/ocr-stats', { params: { days } });
   },
+
+  // ==================== 字典管理接口（F08） ====================
+
+  /**
+   * 查询退货分类字典树（登录即可读）
+   * @returns {Promise} 字典树结构 { items: [...] }
+   */
+  getDictCategories() {
+    return api.get('/dict/categories');
+  },
+
+  /**
+   * 创建字典项（仅 ADMIN）
+   * @param {Object} data { dict_id, parent_id?, item_code, item_label, is_leaf?, sort_order? }
+   */
+  createDictItem(data) {
+    return api.post('/admin/dict/items', data);
+  },
+
+  /**
+   * 修改字典项（仅 ADMIN，只改 label/sortOrder/is_leaf，不改 item_code）
+   * @param {number} id 字典项 ID
+   * @param {Object} data { item_label?, sort_order?, is_leaf? }
+   */
+  updateDictItem(id, data) {
+    return api.put(`/admin/dict/items/${id}`, data);
+  },
+
+  /**
+   * 停用字典项（仅 ADMIN，软删，级联停用子项）
+   * @param {number} id 字典项 ID
+   */
+  disableDictItem(id) {
+    return api.delete(`/admin/dict/items/${id}`);
+  },
 };

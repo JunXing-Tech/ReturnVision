@@ -86,6 +86,7 @@
         @confirmed="handleConfirmed" @navigate="handleNavigate" @clearEditRecord="pendingEditRecord = null" />
       <RecordsPanel v-show="activeTab === 'records'" @editRecord="handleEditRecord" @navigate="activeTab = $event" @refresh="handleRefresh" />
       <UserManagePanel v-show="activeTab === 'users'" />
+      <DictPanel v-show="activeTab === 'dict'" />
       <ProfilePanel v-show="activeTab === 'profile'" />
       <AuditLogPanel v-show="activeTab === 'audit'" />
       <OcrStatsPanel v-show="activeTab === 'ocrstats'" />
@@ -107,6 +108,7 @@ import UserManagePanel from './components/UserManagePanel.vue';
 import ProfilePanel from './components/ProfilePanel.vue';
 import AuditLogPanel from './components/AuditLogPanel.vue';
 import OcrStatsPanel from './components/OcrStatsPanel.vue';
+import DictPanel from './components/DictPanel.vue';
 
 const activeTab = ref('dashboard');
 
@@ -134,6 +136,7 @@ const visibleTabs = computed(() => {
     { key: 'recognition', label: '面单识别', icon: ScanLine, roles: ['STAFF', 'SUPERVISOR', 'ADMIN'], group: '业务导航' },
     { key: 'records', label: '退货记录', icon: Document, roles: ['STAFF', 'SUPERVISOR', 'ADMIN'], group: '业务导航' },
     { key: 'users', label: '用户管理', icon: UserFilled, roles: ['ADMIN'], group: '系统管理' },
+    { key: 'dict', label: '退货字典', icon: ClipboardList, roles: ['ADMIN'], group: '系统管理' },
     { key: 'audit', label: '审计日志', icon: ClipboardList, roles: ['SUPERVISOR', 'ADMIN'], group: '系统管理' },
     { key: 'profile', label: '个人中心', icon: UserCircle, roles: ['STAFF', 'SUPERVISOR', 'ADMIN'], group: '系统管理' },
   ];

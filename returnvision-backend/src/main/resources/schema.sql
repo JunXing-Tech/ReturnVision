@@ -138,3 +138,58 @@ CREATE TABLE IF NOT EXISTS operation_log (
 CREATE INDEX idx_operation_log_user ON operation_log(user_id);
 CREATE INDEX idx_operation_log_action ON operation_log(action);
 CREATE INDEX idx_operation_log_created ON operation_log(created_at);
+
+-- ============================================================
+-- F08 退货分类标准字典表（v2.2 新增）
+-- 详见 docs/05 第 4.5.11 节
+-- 设计要点：
+--   1. 两级字典：sys_dict（字典目录） + sys_dict_item（字典项）
+--   2. sys_dict_item.is_leaf 标识叶子项（LLM 只从叶子项选）
+--   3. status=disabled 为软删（停用），不物理删除，保护历史 return_records.return_category
+--   4. uk_dict_item 保证同层级内 item_code 唯一
+-- ============================================================
+
+-- 字典主表（分类目录）
+CREATE TABLE IF NOT EXISTS sys_dict (
+    id           INT PRIMARY KEY AUTO_INCREMENT,
+    dict_code    VARCHAR(30) NOT NULL UNIQUE,               -- 字典编码，如 'return_category'
+    dict_name    VARCHAR(50) NOT NULL,                      -- 字典名称，如 '退货分类'
+    status       VARCHAR(20) DEFAULT 'active',              -- active/disabled
+    remark       VARCHAR(200),                              -- 备注
+    created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at   DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 字典项表（具体条目，支持两级）
+CREATE TABLE IF NOT EXISTS sys_dict_item (
+    id           INT PRIMARY KEY AUTO_INCREMENT,
+    dict_id      INT NOT NULL,                              -- 关联 sys_dict.id
+    parent_id    INT DEFAULT NULL,                          -- 父项ID，一级项为 NULL
+    item_code    VARCHAR(50) NOT NULL,                      -- 项编码，如 'QUALITY'
+    item_label   VARCHAR(50) NOT NULL,                      -- 项名称，如 '质量问题'
+    is_leaf      TINYINT(1) DEFAULT 1,                      -- 1=叶子（LLM 可选），0=仅目录
+    sort_order   INT DEFAULT 0,                             -- 排序
+    status       VARCHAR(20) DEFAULT 'active',              -- active/disabled
+    created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at   DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (dict_id) REFERENCES sys_dict(id) ON DELETE CASCADE,
+    UNIQUE KEY uk_dict_item (dict_id, parent_id, item_code) -- 同层级内 code 唯一
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE INDEX idx_sys_dict_item_dict ON sys_dict_item(dict_id);
+CREATE INDEX idx_sys_dict_item_parent ON sys_dict_item(parent_id);
+
+-- 预置 return_category 字典（两级，5 个一级项）
+INSERT INTO sys_dict (dict_code, dict_name, remark) VALUES
+    ('return_category', '退货分类', 'F08 退货分类标准字典，LLM 分析时从此字典选分类')
+ON DUPLICATE KEY UPDATE dict_name = VALUES(dict_name), remark = VALUES(remark);
+
+-- 一级项（is_leaf=1 表示既是目录也是叶子，LLM 可直接选）
+-- item_code 用大写英文，LLM 返回 code 后端反查 label
+INSERT INTO sys_dict_item (dict_id, parent_id, item_code, item_label, is_leaf, sort_order) VALUES
+    ((SELECT id FROM (SELECT id FROM sys_dict WHERE dict_code='return_category') t), NULL, 'QUALITY',   '质量问题', 1, 1),
+    ((SELECT id FROM (SELECT id FROM sys_dict WHERE dict_code='return_category') t), NULL, 'LOGISTICS','物流问题', 1, 2),
+    ((SELECT id FROM (SELECT id FROM sys_dict WHERE dict_code='return_category') t), NULL, 'SIZE',     '尺寸不符', 1, 3),
+    ((SELECT id FROM (SELECT id FROM sys_dict WHERE dict_code='return_category') t), NULL, 'PRICE',    '价格问题', 1, 4),
+    ((SELECT id FROM (SELECT id FROM sys_dict WHERE dict_code='return_category') t), NULL, 'OTHER',    '其他',     1, 99)
+ON DUPLICATE KEY UPDATE item_label = VALUES(item_label), is_leaf = VALUES(is_leaf), sort_order = VALUES(sort_order);

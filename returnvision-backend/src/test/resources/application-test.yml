@@ -1,10 +1,24 @@
 # 测试 profile 配置
 # 作用：让所有 src/test 下的测试默认进入此 profile，外部依赖密钥置空触发降级或由 Mockito mock
 # 注意：本 profile 不连真实 MySQL/不调真实 OCR/LLM/COS/飞书
-# TODO（Phase 2）：当引入 @SpringBootTest 时，在此添加 datasource（H2 MySQL 模式 或 Testcontainers）
+# F08 v2.2：补 H2 MySQL 模式 datasource，支持 @SpringBootTest 集成测试
 
 server:
   port: 0
+
+# H2 MySQL 兼容模式（F08 v2.2 新增）
+# 用于 @SpringBootTest 集成测试，自动执行 schema.sql 建表
+spring:
+  datasource:
+    url: jdbc:h2:mem:returnvision_test;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  sql:
+    init:
+      mode: always
+      continue-on-error: true
+      schema-locations: classpath:schema.sql
 
 # 智谱OCR（引擎A）：空凭证，不调真实服务
 # 注意：OcrZhipuService 当前不降级，测试中遇到需要真实调用时必须 Mockito mock
