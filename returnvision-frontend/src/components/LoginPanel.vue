@@ -1,80 +1,47 @@
 <template>
-  <!-- 登录页主容器 -->
-  <div class="login-page">
-    <!-- 步骤1：品牌区域 -->
-    <div class="brand-side">
-      <div class="brand-content">
+  <!-- 登录页主容器（居中实色白卡 + 淡光晕背景，对齐设计稿 login-v2） -->
+  <div class="login-host">
+    <!-- 背景光晕层：淡品牌蓝径向光晕 -->
+    <div class="bg-glow"></div>
+
+    <!-- 内容层：居中，max-width 440px -->
+    <div class="login-content">
+      <!-- 品牌头部 -->
+      <div class="brand-head">
         <div class="brand-logo">RV</div>
         <h1 class="brand-title">退运智录</h1>
-        <p class="brand-subtitle">ReturnVision</p>
-        <div class="brand-features">
-          <div class="feature-item">
-            <ScanLine />
-            <span>双引擎 OCR 交叉验证</span>
-          </div>
-          <div class="feature-item">
-            <Document />
-            <span>DeepSeek AI 智能分析</span>
-          </div>
-          <div class="feature-item">
-            <CloudUpload />
-            <span>飞书多维表格自动同步</span>
-          </div>
-        </div>
+        <p class="brand-slogan">拍照识别快递面单，智能录入飞书</p>
       </div>
-    </div>
 
-    <!-- 步骤2：登录表单区域 -->
-    <div class="form-side">
-      <div class="form-card">
-        <!-- 步骤2.1：标题 -->
-        <div class="form-header">
-          <h2 class="form-title">登录</h2>
-          <p class="form-desc">使用账号密码登录，或点击飞书图标快速登录</p>
+      <!-- 登录卡 -->
+      <div class="login-card">
+        <div class="card-head">
+          <h2 class="card-title">登录工作台</h2>
+          <p class="card-subtitle">欢迎回来</p>
         </div>
 
-        <!-- 步骤2.2：账号密码表单 -->
+        <!-- 账号密码表单 -->
         <form class="login-form" @submit.prevent="handleLogin">
-          <div class="field">
-            <label class="field-label">用户名</label>
-            <input
-              v-model="username"
-              type="text"
-              class="field-input"
-              placeholder="请输入用户名"
-              autocomplete="username"
-              :disabled="loading"
-            />
+          <div class="form-field">
+            <label class="form-label">用户名</label>
+            <input v-model="username" type="text" class="form-input" placeholder="请输入用户名" autocomplete="username" :disabled="loading" />
+          </div>
+          <div class="form-field">
+            <label class="form-label">密码</label>
+            <input v-model="password" type="password" class="form-input" placeholder="请输入密码" autocomplete="current-password" :disabled="loading" />
           </div>
 
-          <div class="field">
-            <label class="field-label">密码</label>
-            <input
-              v-model="password"
-              type="password"
-              class="field-input"
-              placeholder="请输入密码"
-              autocomplete="current-password"
-              :disabled="loading"
-            />
-          </div>
-
-          <!-- 错误提示 -->
-          <div v-if="errorMsg" class="error-msg">
-            {{ errorMsg }}
-          </div>
+          <div v-if="errorMsg" class="error-msg">{{ errorMsg }}</div>
 
           <button type="submit" class="login-btn" :disabled="loading">
             {{ loading ? '登录中...' : '登录' }}
           </button>
         </form>
 
-        <!-- 步骤2.3：分隔线 -->
-        <div class="divider">
-          <span>或</span>
-        </div>
+        <!-- 分隔线 -->
+        <div class="divider"><span>或</span></div>
 
-        <!-- 步骤2.4：飞书 OAuth 登录 -->
+        <!-- 飞书登录 -->
         <button class="feishu-btn" @click="handleFeishuLogin" :disabled="loading">
           <svg class="feishu-icon" viewBox="0 0 24 24" fill="currentColor">
             <path d="M3.5 9.5l4-4.5h7l-4 4.5h-7zm0 5l4-4.5h7l-4 4.5h-7zm0 5l4-4.5h7l-4 4.5h-7z"/>
@@ -82,42 +49,69 @@
           <span>飞书登录</span>
         </button>
 
-        <!-- 步骤2.5：初始密码提示 -->
-        <div class="hint">
-          初始账号：admin / admin123（首次登录后请修改密码）
+        <!-- 初始密码提示 -->
+        <div class="hint">初始账号：admin / admin123（首次登录后请修改密码）</div>
+      </div>
+
+      <!-- 底部产品特性点 -->
+      <div class="feature-points">
+        <div class="feature-point">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div class="feature-text">
+            <div class="feature-title">双引擎交叉验证</div>
+            <div class="feature-desc">智谱 + 阿里云双重识别</div>
+          </div>
+        </div>
+        <div class="feature-point">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"/></svg>
+          </div>
+          <div class="feature-text">
+            <div class="feature-title">DeepSeek 智能分析</div>
+            <div class="feature-desc">AI 推断退货原因与分类</div>
+          </div>
+        </div>
+        <div class="feature-point">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>
+          </div>
+          <div class="feature-text">
+            <div class="feature-title">一键写入飞书</div>
+            <div class="feature-desc">自动同步多维表格</div>
+          </div>
         </div>
       </div>
+
+      <!-- 底部版权 -->
+      <div class="copyright">© 2026 退运智录 · JunXing Tech</div>
     </div>
+  </div>
 
-    <!-- 步骤3：改密弹窗（首次登录强制改密） -->
-    <div v-if="showChangePassword" class="modal-overlay">
-      <div class="modal-card">
-        <h3 class="modal-title">首次登录请修改密码</h3>
-        <p class="modal-desc">检测到您使用的是初始密码，请修改后继续使用</p>
-
-        <div class="field">
-          <label class="field-label">旧密码</label>
-          <input v-model="oldPassword" type="password" class="field-input" placeholder="请输入旧密码" />
-        </div>
-        <div class="field">
-          <label class="field-label">新密码</label>
-          <input v-model="newPassword" type="password" class="field-input" placeholder="请输入新密码" />
-        </div>
-        <div class="field">
-          <label class="field-label">确认新密码</label>
-          <input v-model="confirmPassword" type="password" class="field-input" placeholder="请再次输入新密码" />
-        </div>
-
-        <div v-if="changePwdError" class="error-msg">
-          {{ changePwdError }}
-        </div>
-
-        <div class="modal-actions">
-          <button class="btn-secondary" @click="handleSkipChangePwd" :disabled="loading">稍后修改</button>
-          <button class="btn-primary" @click="handleChangePassword" :disabled="loading">
-            {{ loading ? '提交中...' : '确认修改' }}
-          </button>
-        </div>
+  <!-- 改密弹窗（首次登录强制改密） -->
+  <div v-if="showChangePassword" class="modal-overlay">
+    <div class="modal-card">
+      <h3 class="modal-title">首次登录请修改密码</h3>
+      <p class="modal-desc">检测到您使用的是初始密码，请修改后继续使用</p>
+      <div class="form-field">
+        <label class="form-label">旧密码</label>
+        <input v-model="oldPassword" type="password" class="form-input" placeholder="请输入旧密码" />
+      </div>
+      <div class="form-field">
+        <label class="form-label">新密码</label>
+        <input v-model="newPassword" type="password" class="form-input" placeholder="请输入新密码" />
+      </div>
+      <div class="form-field">
+        <label class="form-label">确认新密码</label>
+        <input v-model="confirmPassword" type="password" class="form-input" placeholder="请再次输入新密码" />
+      </div>
+      <div v-if="changePwdError" class="error-msg">{{ changePwdError }}</div>
+      <div class="modal-actions">
+        <button class="btn-secondary" @click="handleSkipChangePwd" :disabled="loading">稍后修改</button>
+        <button class="btn-primary" @click="handleChangePassword" :disabled="loading">
+          {{ loading ? '提交中...' : '确认修改' }}
+        </button>
       </div>
     </div>
   </div>
@@ -126,52 +120,38 @@
 <script setup>
 // 步骤4：组件状态与登录逻辑
 import { ref } from 'vue';
-import { ScanLine, Document, CloudUpload } from '../icons';
 import api from '../api';
 import { useAuth } from '../composables/useAuth';
 
 const emit = defineEmits(['login-success']);
 
-// F01 飞书登录回调失败时，父组件 App.vue 调用此方法显示错误
-const setError = (msg) => {
-  errorMsg.value = msg;
-};
-
+const setError = (msg) => { errorMsg.value = msg; };
 defineExpose({ setError });
 
 const { setTokens } = useAuth();
 
-// 账号密码表单状态
 const username = ref('');
 const password = ref('');
 const loading = ref(false);
 const errorMsg = ref('');
 
-// 改密弹窗状态
 const showChangePassword = ref(false);
 const oldPassword = ref('');
 const newPassword = ref('');
 const confirmPassword = ref('');
 const changePwdError = ref('');
 
-/**
- * 步骤5：账号密码登录
- */
 const handleLogin = async () => {
   if (!username.value || !password.value) {
     errorMsg.value = '用户名和密码不能为空';
     return;
   }
-
   loading.value = true;
   errorMsg.value = '';
-
   try {
     const resp = await api.login(username.value, password.value);
     const { access_token, refresh_token, user } = resp.data.data;
     setTokens(access_token, refresh_token, user);
-
-    // 初始密码需强制改密
     if (user.must_change_password) {
       oldPassword.value = password.value;
       showChangePassword.value = true;
@@ -179,24 +159,18 @@ const handleLogin = async () => {
       emit('login-success');
     }
   } catch (err) {
-    const msg = err.response?.data?.msg || '登录失败，请重试';
-    errorMsg.value = msg;
+    errorMsg.value = err.response?.data?.msg || '登录失败，请重试';
   } finally {
     loading.value = false;
   }
 };
 
-/**
- * 步骤6：飞书 OAuth 登录
- */
 const handleFeishuLogin = async () => {
   loading.value = true;
   errorMsg.value = '';
-
   try {
     const resp = await api.getFeishuAuthUrl();
     const { auth_url } = resp.data.data;
-    // 跳转飞书授权页
     window.location.href = auth_url;
   } catch (err) {
     errorMsg.value = '飞书登录暂不可用';
@@ -205,9 +179,6 @@ const handleFeishuLogin = async () => {
   }
 };
 
-/**
- * 步骤7：修改密码
- */
 const handleChangePassword = async () => {
   if (!oldPassword.value || !newPassword.value) {
     changePwdError.value = '旧密码和新密码不能为空';
@@ -221,14 +192,11 @@ const handleChangePassword = async () => {
     changePwdError.value = '新密码不能与初始密码相同';
     return;
   }
-
   loading.value = true;
   changePwdError.value = '';
-
   try {
     await api.changePassword(oldPassword.value, newPassword.value);
     showChangePassword.value = false;
-    // 更新本地 user 的 must_change_password 标志
     const { user } = useAuth();
     if (user.value) {
       user.value.must_change_password = false;
@@ -242,9 +210,6 @@ const handleChangePassword = async () => {
   }
 };
 
-/**
- * 步骤8：跳过改密（允许用户稍后修改）
- */
 const handleSkipChangePwd = () => {
   showChangePassword.value = false;
   emit('login-success');
@@ -252,233 +217,246 @@ const handleSkipChangePwd = () => {
 </script>
 
 <style scoped>
-.login-page {
-  display: flex;
+/* 步骤15：登录页样式（源力设计系统 v3.0，居中实色白卡 + 淡光晕，对齐设计稿 login-v2） */
+.login-host {
   min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+  position: relative;
+  overflow: hidden;
+  padding: 40px 20px;
+}
+
+/* 背景光晕层：淡品牌蓝径向光晕 */
+.bg-glow {
+  position: absolute;
+  top: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  height: 600px;
+  background: radial-gradient(ellipse at center, var(--color-primary) 0%, transparent 70%);
+  opacity: 0.05;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 内容层：居中 */
+.login-content {
+  position: relative;
+  z-index: 1;
   width: 100%;
-}
-
-/* 品牌区域 */
-.brand-side {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, var(--brand-primary, #14b8a6) 0%, #0d9488 100%);
-  color: #fff;
-  padding: 48px;
-}
-
-.brand-content {
-  max-width: 420px;
-}
-
-.brand-logo {
-  width: 72px;
-  height: 72px;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
-  font-weight: 700;
-  margin-bottom: 24px;
-  backdrop-filter: blur(10px);
-}
-
-.brand-title {
-  font-size: 42px;
-  font-weight: 700;
-  margin: 0 0 8px 0;
-  letter-spacing: -1px;
-}
-
-.brand-subtitle {
-  font-size: 16px;
-  opacity: 0.8;
-  margin: 0 0 48px 0;
-}
-
-.brand-features {
+  max-width: 440px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-}
-
-.feature-item {
-  display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 15px;
-  opacity: 0.95;
+  gap: 24px;
 }
 
-.feature-item svg {
-  width: 20px;
-  height: 20px;
-  opacity: 0.9;
+/* 品牌头部 */
+.brand-head {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
-
-/* 表单区域 */
-.form-side {
-  flex: 1;
+.brand-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-primary-fg);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 48px;
-  background: var(--bg-primary, #f9fafb);
-}
-
-.form-card {
-  width: 100%;
-  max-width: 400px;
-}
-
-.form-header {
-  margin-bottom: 32px;
-}
-
-.form-title {
-  font-size: 28px;
+  font-size: 18px;
   font-weight: 700;
-  margin: 0 0 8px 0;
-  color: var(--text-primary, #111827);
+  font-family: var(--font-mono);
+  margin-bottom: 4px;
 }
-
-.form-desc {
-  font-size: 14px;
-  color: var(--text-secondary, #6b7280);
+.brand-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--color-fg);
+  margin: 0;
+  font-family: var(--font-sans);
+}
+.brand-slogan {
+  font-size: 13px;
+  color: var(--color-fg-muted);
   margin: 0;
 }
 
-.login-form {
+/* 登录卡（实色白卡） */
+.login-card {
+  width: 100%;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  padding: 32px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
+}
+.card-head { display: flex; flex-direction: column; gap: 4px; }
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-fg);
+  margin: 0;
+}
+.card-subtitle {
+  font-size: 12px;
+  color: var(--color-fg-muted);
+  margin: 0;
 }
 
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.field-label {
-  font-size: 13px;
+/* 表单 */
+.login-form { display: flex; flex-direction: column; gap: 16px; }
+.form-field { display: flex; flex-direction: column; gap: 6px; }
+.form-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
   font-weight: 500;
-  color: var(--text-secondary, #6b7280);
+  color: var(--color-fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
-
-.field-input {
-  padding: 10px 14px;
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 8px;
+.form-input {
+  width: 100%;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--color-input);
+  border-radius: var(--radius);
   font-size: 14px;
-  background: var(--bg-card, #fff);
-  color: var(--text-primary, #111827);
-  transition: border-color 0.2s;
-}
-
-.field-input:focus {
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-fg);
+  box-sizing: border-box;
   outline: none;
-  border-color: var(--brand-primary, #14b8a6);
-  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
+  transition: border-color var(--transition), box-shadow var(--transition);
 }
-
-.field-input:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.form-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(56, 123, 255, 0.15);
 }
+.form-input:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .error-msg {
   padding: 10px 14px;
-  background: rgba(239, 68, 68, 0.1);
-  color: #dc2626;
-  border-radius: 8px;
+  background: var(--color-error-subtle);
+  color: var(--color-error-strong);
+  border-radius: var(--radius);
   font-size: 13px;
 }
 
+/* 登录按钮 */
 .login-btn {
-  padding: 11px 16px;
-  background: var(--brand-primary, #14b8a6);
-  color: #fff;
+  width: 100%;
+  height: 40px;
+  background: var(--color-primary);
+  color: var(--color-primary-fg);
   border: none;
-  border-radius: 8px;
-  font-size: 15px;
-  font-weight: 600;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 500;
+  font-family: var(--font-sans);
   cursor: pointer;
-  transition: background 0.2s;
+  transition: var(--transition);
 }
+.login-btn:hover:not(:disabled) { background: var(--color-primary-hover); }
+.login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
-.login-btn:hover:not(:disabled) {
-  background: #0d9488;
-}
-
-.login-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
+/* 分隔线 */
 .divider {
   display: flex;
   align-items: center;
-  margin: 24px 0;
-  color: var(--text-tertiary, #9ca3af);
-  font-size: 13px;
+  color: var(--color-fg-muted);
+  font-size: 12px;
 }
-
-.divider::before,
-.divider::after {
+.divider::before, .divider::after {
   content: '';
   flex: 1;
   height: 1px;
-  background: var(--border-color, #e5e7eb);
+  background: var(--color-border);
 }
+.divider span { padding: 0 12px; }
 
-.divider span {
-  padding: 0 12px;
-}
-
+/* 飞书登录 */
 .feishu-btn {
   width: 100%;
-  padding: 11px 16px;
-  background: #fff;
-  color: var(--text-primary, #111827);
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 8px;
-  font-size: 15px;
+  height: 40px;
+  background: var(--color-card);
+  color: var(--color-fg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 14px;
   font-weight: 500;
+  font-family: var(--font-sans);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: background 0.2s;
+  transition: var(--transition);
 }
+.feishu-btn:hover:not(:disabled) { background: var(--color-muted); }
+.feishu-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.feishu-icon { width: 18px; height: 18px; color: #3370ff; }
 
-.feishu-btn:hover:not(:disabled) {
-  background: #f9fafb;
-}
-
-.feishu-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.feishu-icon {
-  width: 18px;
-  height: 18px;
-  color: #3370ff;
-}
-
+/* 初始密码提示 */
 .hint {
-  margin-top: 24px;
   padding: 10px 14px;
-  background: rgba(59, 130, 246, 0.08);
-  color: #3b82f6;
-  border-radius: 8px;
+  background: var(--color-accent);
+  color: var(--color-accent-fg);
+  border-radius: var(--radius);
   font-size: 12px;
+  text-align: center;
+}
+
+/* 底部产品特性点（3 个横排） */
+.feature-points {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.feature-point {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  max-width: 120px;
+}
+.feature-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary);
+}
+.feature-icon svg { width: 20px; height: 20px; }
+.feature-text { display: flex; flex-direction: column; gap: 2px; }
+.feature-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-fg);
+}
+.feature-desc {
+  font-size: 10px;
+  color: var(--color-fg-muted);
+}
+
+/* 底部版权 */
+.copyright {
+  font-size: 11px;
+  color: var(--color-fg-muted);
   text-align: center;
 }
 
@@ -486,90 +464,66 @@ const handleSkipChangePwd = () => {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(12, 13, 14, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  backdrop-filter: blur(4px);
 }
-
 .modal-card {
-  background: var(--bg-card, #fff);
-  border-radius: 16px;
-  padding: 32px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 28px;
   width: 90%;
   max-width: 440px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-}
-
-.modal-title {
-  font-size: 20px;
-  font-weight: 700;
-  margin: 0 0 8px 0;
-  color: var(--text-primary, #111827);
-}
-
-.modal-desc {
-  font-size: 13px;
-  color: var(--text-secondary, #6b7280);
-  margin: 0 0 24px 0;
-}
-
-.modal-card .field {
-  margin-bottom: 14px;
-}
-
-.modal-actions {
+  box-shadow: var(--shadow-lg);
   display: flex;
-  gap: 12px;
-  margin-top: 20px;
+  flex-direction: column;
+  gap: 16px;
 }
-
+.modal-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--color-fg);
+}
+.modal-desc { font-size: 13px; color: var(--color-fg-muted); margin: 0; }
+.modal-actions { display: flex; gap: 12px; margin-top: 8px; }
 .btn-secondary {
   flex: 1;
-  padding: 10px 16px;
+  height: 38px;
   background: transparent;
-  color: var(--text-secondary, #6b7280);
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 8px;
+  color: var(--color-fg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
   font-size: 14px;
+  font-family: var(--font-sans);
   cursor: pointer;
+  transition: var(--transition);
 }
-
-.btn-secondary:hover:not(:disabled) {
-  background: var(--bg-hover, #f3f4f6);
-}
-
+.btn-secondary:hover:not(:disabled) { background: var(--color-muted); }
 .btn-primary {
   flex: 1;
-  padding: 10px 16px;
-  background: var(--brand-primary, #14b8a6);
-  color: #fff;
+  height: 38px;
+  background: var(--color-primary);
+  color: var(--color-primary-fg);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
+  font-family: var(--font-sans);
   cursor: pointer;
+  transition: var(--transition);
 }
+.btn-primary:hover:not(:disabled) { background: var(--color-primary-hover); }
+.btn-primary:disabled, .btn-secondary:disabled { opacity: 0.6; cursor: not-allowed; }
 
-.btn-primary:hover:not(:disabled) {
-  background: #0d9488;
-}
-
-.btn-primary:disabled,
-.btn-secondary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* 响应式：窄屏隐藏品牌区 */
-@media (max-width: 768px) {
-  .brand-side {
-    display: none;
-  }
-  .form-side {
-    padding: 24px;
-  }
+/* 响应式 */
+@media (max-width: 480px) {
+  .login-host { padding: 20px 16px; }
+  .login-card { padding: 24px; }
+  .feature-points { gap: 16px; }
+  .feature-point { max-width: 100px; }
 }
 </style>

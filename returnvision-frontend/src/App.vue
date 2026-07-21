@@ -15,14 +15,17 @@
         </div>
       </div>
 
-      <!-- 导航列表 -->
+      <!-- 导航列表（按分组渲染小字标题） -->
       <nav class="nav-list">
-        <button v-for="tab in visibleTabs" :key="tab.key"
-          :class="['nav-item', { active: activeTab === tab.key }]"
-          @click="activeTab = tab.key">
-          <component :is="tab.icon" />
-          <span>{{ tab.label }}</span>
-        </button>
+        <div v-for="grp in groupedTabs" :key="grp.label" class="nav-group">
+          <div class="nav-group-label">{{ grp.label }}</div>
+          <button v-for="tab in grp.items" :key="tab.key"
+            :class="['nav-item', { active: activeTab === tab.key }]"
+            @click="activeTab = tab.key">
+            <component :is="tab.icon" />
+            <span>{{ tab.label }}</span>
+          </button>
+        </div>
       </nav>
 
       <!-- 分隔线 -->
@@ -127,15 +130,29 @@ const goProfile = () => {
 // 步骤4.3：用户角色判断 -- 客服不显示工作台 Tab，仅管理员显示用户管理 Tab
 const visibleTabs = computed(() => {
   const allTabs = [
-    { key: 'dashboard', label: '工作台', icon: HomeFilled, roles: ['SUPERVISOR', 'ADMIN'] },
-    { key: 'recognition', label: '面单识别', icon: ScanLine, roles: ['STAFF', 'SUPERVISOR', 'ADMIN'] },
-    { key: 'records', label: '退货记录', icon: Document, roles: ['STAFF', 'SUPERVISOR', 'ADMIN'] },
-    { key: 'users', label: '用户管理', icon: UserFilled, roles: ['ADMIN'] },
-    { key: 'audit', label: '审计日志', icon: ClipboardList, roles: ['SUPERVISOR', 'ADMIN'] },
-    { key: 'profile', label: '个人中心', icon: UserCircle, roles: ['STAFF', 'SUPERVISOR', 'ADMIN'] },
+    { key: 'dashboard', label: '工作台', icon: HomeFilled, roles: ['SUPERVISOR', 'ADMIN'], group: '退货录入工作台' },
+    { key: 'recognition', label: '面单识别', icon: ScanLine, roles: ['STAFF', 'SUPERVISOR', 'ADMIN'], group: '业务导航' },
+    { key: 'records', label: '退货记录', icon: Document, roles: ['STAFF', 'SUPERVISOR', 'ADMIN'], group: '业务导航' },
+    { key: 'users', label: '用户管理', icon: UserFilled, roles: ['ADMIN'], group: '系统管理' },
+    { key: 'audit', label: '审计日志', icon: ClipboardList, roles: ['SUPERVISOR', 'ADMIN'], group: '系统管理' },
+    { key: 'profile', label: '个人中心', icon: UserCircle, roles: ['STAFF', 'SUPERVISOR', 'ADMIN'], group: '系统管理' },
   ];
   const userRoles = user.value?.roles || [];
   return allTabs.filter(tab => tab.roles.some(r => userRoles.includes(r)));
+});
+
+// 步骤4.3.1：按 group 分组导航项（供模板渲染分组小字标题）
+const groupedTabs = computed(() => {
+  const groups = [];
+  const groupMap = new Map();
+  visibleTabs.value.forEach(tab => {
+    if (!groupMap.has(tab.group)) {
+      groupMap.set(tab.group, []);
+      groups.push(tab.group);
+    }
+    groupMap.get(tab.group).push(tab);
+  });
+  return groups.map(g => ({ label: g, items: groupMap.get(g) }));
 });
 
 // 步骤4.4：用户首字母 + 角色文本
@@ -363,14 +380,27 @@ body { font-family: var(--font-sans); background: var(--color-bg); color: var(--
 .nav-list {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: calc(var(--spacing) * 3);
   padding: 0 calc(var(--spacing) * 2);
+}
+/* 分组小字标题 */
+.nav-group { display: flex; flex-direction: column; gap: 1px; }
+.nav-group-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--color-fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0 12px;
+  margin-bottom: 4px;
+  opacity: 0.7;
 }
 .nav-item {
   display: flex;
   align-items: center;
   gap: calc(var(--spacing) * 2.5);
-  padding: 7px 10px;
+  padding: 8px 12px;
   border-radius: var(--radius);
   cursor: pointer;
   border: none;
@@ -381,9 +411,26 @@ body { font-family: var(--font-sans); background: var(--color-bg); color: var(--
   transition: var(--transition);
   width: 100%;
   text-align: left;
+  position: relative;
 }
-.nav-item:hover { background: var(--color-sidebar-accent); color: var(--color-sidebar-accent-fg); }
-.nav-item.active { background: var(--color-sidebar-accent); color: var(--color-sidebar-accent-fg); font-weight: 500; }
+.nav-item:hover { background: var(--color-sidebar-accent); color: var(--color-fg); }
+.nav-item.active {
+  background: var(--color-accent);
+  color: var(--color-primary);
+  font-weight: 500;
+}
+/* 激活态品牌蓝左指示条（与设计稿一致） */
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 18px;
+  border-radius: 0 2px 2px 0;
+  background: var(--color-primary);
+}
 .nav-item .el-icon { font-size: 16px; flex-shrink: 0; }
 
 /* 分隔线 */
