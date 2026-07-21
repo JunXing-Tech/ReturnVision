@@ -155,6 +155,32 @@
       "mutableSlots": []
     },
     {
+      "nodeId": "page-login-v2",
+      "slug": "login-v2",
+      "title": "登录-重设计",
+      "htmlSrc": "pages/login-v2.html",
+      "pageIndex": 1,
+      "pageType": "brand-entry",
+      "viewportMode": "document-scroll",
+      "businessScenario": "运营人员登录入口重设计版：全屏深色品牌叙事区 + 退货流程可视化动画背景（OCR 扫描线 + 面单轮廓 + 飞书同步光点）+ 居中玻璃拟态登录卡（用户名/密码/记住我/登录按钮）",
+      "visualNorthStar": "一个有记忆点的登录页，深色品牌场景作为画布，退货流程可视化动画作为灵魂元素让用户登录前就看到产品做什么，玻璃拟态登录卡浮于其上聚焦操作",
+      "compositionPattern": "Full-screen dark brand canvas + animated return-flow visualization background + centered glassmorphism login card",
+      "continuityAnchors": ["brand blue primary as accent on dark", "PingFang SC font", "glassmorphism card surface", "source力 dark surface tokens"],
+      "generationNodeId": "gen-page-login-v2",
+      "generationPath": ["gen-page-login-v2"],
+      "inheritedFragments": [],
+      "privateRegions": ["entire login-v2 page"],
+      "mutableSlots": [],
+      "derivationType": "comparison-from-source",
+      "sourcePageId": "page-login",
+      "sourceHtmlSrc": "pages/login.html",
+      "designIntentEvidence": {
+        "tone": "editorial-cinematic on dark brand canvas",
+        "soulElement": "退货流程可视化动画背景：面单照片轮廓 SVG + 蓝色扫描线从上到下扫过模拟 OCR + 字段提取光点弹出 + 飞书同步箭头流动，让用户登录前就看到产品做什么",
+        "antiConvergence": "原版是浅色左右分屏模板；新版改用深色全屏叙事 + 玻璃拟态浮层 + 动态流程可视化，彻底跳出白底蓝卡的趋同组合"
+      }
+    },
+    {
       "nodeId": "page-dashboard",
       "slug": "dashboard",
       "title": "工作台",

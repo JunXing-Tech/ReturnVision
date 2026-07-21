@@ -144,6 +144,11 @@
 
   /* ===== 过渡 ===== */
   --yuanli-transition: 150ms ease;
+
+  /* ===== 登录页专用（品牌蓝背景上的白色文字/图标）===== */
+  --yuanli-login-on-brand: #ffffff;
+  --yuanli-login-feature-bg: rgba(255, 255, 255, 0.15);
+  --yuanli-login-focus-ring: rgba(56, 123, 255, 0.15);
 }
 
 /* ============================================================
@@ -402,9 +407,355 @@
       }
     </style>
 </head>
-<body class="min-h-screen font-sans antialiased">
-    <main>
+<body class="login-v2-host min-h-screen antialiased">
+    <main class="login-v2-main">
+      <!-- 背景光晕层：淡品牌蓝径向光晕，增加层次但不喧宾夺主 -->
+      <div class="login-v2-glow" aria-hidden="true"></div>
+
+      <!-- 内容层：居中，max-width 440px -->
+      <div class="login-v2-content">
+        <!-- 品牌头部：RV logo + 标题 + slogan -->
+        <header class="login-v2-brand">
+          <div class="login-v2-logo" aria-hidden="true">RV</div>
+          <h1 class="login-v2-title">退运智录</h1>
+          <p class="login-v2-slogan">拍照识别快递面单，智能录入飞书</p>
+        </header>
+
+        <!-- 登录卡：实色白卡 + 边框 + 柔和阴影 + 16px 圆角 -->
+        <section class="login-v2-card">
+          <div class="login-v2-card-header">
+            <h2 class="login-v2-card-title">登录工作台</h2>
+            <p class="login-v2-card-subtitle">欢迎回来</p>
+          </div>
+          <form class="login-v2-form" onsubmit="event.preventDefault();">
+            <div class="login-v2-field">
+              <label class="login-v2-label" for="login-username">用户名</label>
+              <input class="login-v2-input" id="login-username" type="text" placeholder="请输入用户名" autocomplete="username">
+            </div>
+            <div class="login-v2-field">
+              <label class="login-v2-label" for="login-password">密码</label>
+              <input class="login-v2-input" id="login-password" type="password" placeholder="请输入密码" autocomplete="current-password">
+            </div>
+            <div class="login-v2-form-row">
+              <label class="login-v2-remember">
+                <input type="checkbox" class="login-v2-checkbox">
+                <span>记住我</span>
+              </label>
+              <a href="#" class="login-v2-forgot">忘记密码？</a>
+            </div>
+            <button type="submit" class="login-v2-btn-primary" data-dom-id="btn-login">
+              登录
+            </button>
+          </form>
+        </section>
+
+        <!-- 特性点：3 个横排，克制产品特色 -->
+        <ul class="login-v2-features">
+          <li class="login-v2-feature">
+            <span class="login-v2-feature-icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+            </span>
+            <strong class="login-v2-feature-title">双引擎交叉验证</strong>
+            <span class="login-v2-feature-desc">智谱 + 阿里云 OCR</span>
+          </li>
+          <li class="login-v2-feature">
+            <span class="login-v2-feature-icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg>
+            </span>
+            <strong class="login-v2-feature-title">DeepSeek 智能分析</strong>
+            <span class="login-v2-feature-desc">自动推断退货原因</span>
+          </li>
+          <li class="login-v2-feature">
+            <span class="login-v2-feature-icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>
+            </span>
+            <strong class="login-v2-feature-title">一键写入飞书</strong>
+            <span class="login-v2-feature-desc">同步多维表格</span>
+          </li>
+        </ul>
+
+        <!-- 底部版权 -->
+        <p class="login-v2-footer">© 2026 退运智录 · JunXing Tech</p>
+      </div>
     </main>
+    <style>
+      /* ============================================================
+         login-v2 页面专属样式
+         浅色居中实色卡 + 淡光晕背景 + 克制产品特性点
+         全部使用 var(--yuanli-*) 品牌 token
+         ============================================================ */
+
+      /* 局部变量：光晕透明度引用 primary */
+      .login-v2-host {
+        --bg-glow-opacity: 0.05;
+        font-family: var(--yuanli-font-sans);
+        background: var(--yuanli-background);
+        color: var(--yuanli-foreground);
+      }
+
+      /* 主容器：全屏浅色画布，居中布局 */
+      .login-v2-main {
+        position: relative;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 48px 24px;
+        overflow: hidden;
+        background: var(--yuanli-background);
+      }
+
+      /* 背景光晕层：淡品牌蓝径向光晕，居中偏上 */
+      .login-v2-glow {
+        position: absolute;
+        top: 8%;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 800px;
+        height: 600px;
+        background: radial-gradient(ellipse at center, var(--yuanli-primary) 0%, transparent 70%);
+        opacity: var(--bg-glow-opacity);
+        pointer-events: none;
+        z-index: 0;
+        filter: blur(2px);
+      }
+
+      /* 内容层：居中，max-width 440px */
+      .login-v2-content {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        max-width: 440px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      /* 品牌头部：RV logo + 标题 + slogan */
+      .login-v2-brand {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        margin-bottom: 24px;
+      }
+      .login-v2-logo {
+        width: 48px;
+        height: 48px;
+        border-radius: var(--yuanli-radius-full);
+        background: var(--yuanli-primary);
+        color: var(--yuanli-primary-foreground);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        font-weight: var(--yuanli-font-weight-semibold);
+        letter-spacing: -0.02em;
+        margin-bottom: 12px;
+      }
+      .login-v2-title {
+        margin: 0;
+        font-size: 22px;
+        font-weight: var(--yuanli-font-weight-semibold);
+        color: var(--yuanli-foreground);
+        letter-spacing: -0.01em;
+        line-height: var(--yuanli-line-height-tight);
+      }
+      .login-v2-slogan {
+        margin: 6px 0 0;
+        font-size: 13px;
+        color: var(--yuanli-muted-foreground);
+        line-height: var(--yuanli-line-height-normal);
+      }
+
+      /* 登录卡：实色白卡 + 边框 + 柔和阴影 + 16px 圆角 */
+      .login-v2-card {
+        width: 100%;
+        background: var(--yuanli-card);
+        border: 1px solid var(--yuanli-border);
+        border-radius: var(--yuanli-radius-xl);
+        box-shadow: var(--yuanli-shadow-lg);
+        padding: 36px;
+      }
+      .login-v2-card-header {
+        margin-bottom: 24px;
+      }
+      .login-v2-card-title {
+        margin: 0;
+        font-size: 16px;
+        font-weight: var(--yuanli-font-weight-semibold);
+        color: var(--yuanli-foreground);
+        line-height: var(--yuanli-line-height-tight);
+      }
+      .login-v2-card-subtitle {
+        margin: 4px 0 0;
+        font-size: 12px;
+        color: var(--yuanli-muted-foreground);
+        line-height: var(--yuanli-line-height-normal);
+      }
+
+      /* 表单：字段间距 16px */
+      .login-v2-form {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .login-v2-field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .login-v2-label {
+        font-size: 12px;
+        color: var(--yuanli-color-text-3);
+        font-weight: var(--yuanli-font-weight-medium);
+      }
+      .login-v2-input {
+        height: 40px;
+        padding: 0 12px;
+        border: 1px solid var(--yuanli-input);
+        border-radius: var(--yuanli-radius-md);
+        background: var(--yuanli-background);
+        color: var(--yuanli-foreground);
+        font-size: 13px;
+        font-family: var(--yuanli-font-sans);
+        outline: none;
+        transition: border-color var(--yuanli-transition), box-shadow var(--yuanli-transition);
+      }
+      .login-v2-input::placeholder {
+        color: var(--yuanli-color-text-4);
+      }
+      .login-v2-input:hover {
+        border-color: var(--yuanli-border-3);
+      }
+      .login-v2-input:focus {
+        border-color: var(--yuanli-primary);
+        box-shadow: 0 0 0 3px var(--yuanli-login-focus-ring);
+      }
+
+      /* 记住我 + 忘记密码：左右分布 */
+      .login-v2-form-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .login-v2-remember {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        color: var(--yuanli-color-text-2);
+        cursor: pointer;
+      }
+      .login-v2-checkbox {
+        width: 14px;
+        height: 14px;
+        accent-color: var(--yuanli-primary);
+        cursor: pointer;
+      }
+      .login-v2-forgot {
+        font-size: 13px;
+        color: var(--yuanli-primary);
+        text-decoration: none;
+        transition: color var(--yuanli-transition);
+      }
+      .login-v2-forgot:hover {
+        text-decoration: underline;
+      }
+
+      /* 登录按钮：全宽，品牌蓝底白字 */
+      .login-v2-btn-primary {
+        width: 100%;
+        height: 40px;
+        border: 0;
+        border-radius: var(--yuanli-radius-md);
+        background: var(--yuanli-primary);
+        color: var(--yuanli-primary-foreground);
+        font-size: 14px;
+        font-weight: var(--yuanli-font-weight-medium);
+        font-family: var(--yuanli-font-sans);
+        cursor: pointer;
+        transition: background var(--yuanli-transition), transform var(--yuanli-transition);
+      }
+      .login-v2-btn-primary:hover {
+        background: var(--yuanli-ring);
+      }
+      .login-v2-btn-primary:active {
+        transform: scale(0.99);
+      }
+      .login-v2-btn-primary:focus-visible {
+        outline: 2px solid var(--yuanli-ring);
+        outline-offset: 2px;
+      }
+
+      /* 特性点：3 个横排，间距 24px，整体距卡片下方 32px */
+      .login-v2-features {
+        list-style: none;
+        margin: 32px 0 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        gap: 24px;
+        width: 100%;
+      }
+      .login-v2-feature {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 6px;
+        flex: 1;
+        min-width: 0;
+      }
+      .login-v2-feature-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        color: var(--yuanli-primary);
+        margin-bottom: 2px;
+      }
+      .login-v2-feature-title {
+        font-size: 13px;
+        font-weight: var(--yuanli-font-weight-semibold);
+        color: var(--yuanli-foreground);
+        line-height: var(--yuanli-line-height-tight);
+      }
+      .login-v2-feature-desc {
+        font-size: 11px;
+        color: var(--yuanli-muted-foreground);
+        line-height: var(--yuanli-line-height-normal);
+      }
+
+      /* 底部版权 */
+      .login-v2-footer {
+        margin: 32px 0 0;
+        text-align: center;
+        font-size: 11px;
+        color: var(--yuanli-muted-foreground);
+      }
+
+      /* 响应式：≤640px 卡片宽度自适应，padding 减小，特性点纵排 */
+      @media (max-width: 640px) {
+        .login-v2-main {
+          padding: 24px 16px;
+        }
+        .login-v2-card {
+          padding: 24px;
+        }
+        .login-v2-features {
+          flex-direction: column;
+          gap: 16px;
+          max-width: 240px;
+        }
+        .login-v2-glow {
+          width: 600px;
+          height: 400px;
+        }
+      }
+    </style>
     <script>lucide.createIcons();</script>
 </body>
 </html>
