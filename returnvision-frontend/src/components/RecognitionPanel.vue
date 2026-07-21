@@ -200,6 +200,10 @@
 
       <!-- 操作栏 -->
       <div class="action-bar">
+        <!-- 编辑模式：取消编辑返回退货记录页（不清空数据，由记录页重新加载） -->
+        <button v-if="isEditing" class="btn-ghost" @click="emit('navigate', 'records')">
+          <X /><span>取消编辑</span>
+        </button>
         <button class="btn-ghost" @click="reset"><Refresh /><span>重新上传</span></button>
         <button class="btn-primary" :disabled="confirming" @click="handleConfirm">
           <Send v-if="!confirming" />
@@ -705,7 +709,7 @@ function reset() {
 .idle-view { display: grid; gap: calc(var(--spacing) * 4); }
 .upload-zone {
   border: 2px dashed var(--color-border);
-  border-radius: var(--radius);
+  border-radius: 12px;
   padding: 40px;
   display: flex;
   flex-direction: column;
@@ -714,6 +718,7 @@ function reset() {
   cursor: pointer;
   transition: border-color .15s ease, background-color .15s ease;
   text-align: center;
+  background: var(--color-card);
 }
 .upload-zone:hover { border-color: var(--color-primary); }
 .upload-zone.drag-active { border-color: var(--color-primary); background: var(--color-muted); }
@@ -970,11 +975,17 @@ function reset() {
   font-family: var(--font-sans);
   width: 100%;
   box-sizing: border-box;
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.input-shell:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(56, 123, 255, 0.15);
 }
 input.input-shell { height: 34px; }
 textarea.input-shell { height: auto; min-height: 60px; padding: calc(var(--spacing) * 2) calc(var(--spacing) * 3); line-height: 1.5; resize: vertical; }
 .mono-text { font-family: var(--font-mono); }
-.field-diff { border-color: var(--color-chart-3); }
+.field-diff { border-color: var(--color-warning); background: var(--color-warning-subtle); }
 .form-note { color: var(--color-fg-muted); font-size: 12px; }
 
 /* 操作栏 */
@@ -983,10 +994,11 @@ textarea.input-shell { height: auto; min-height: 60px; padding: calc(var(--spaci
   justify-content: flex-end;
   align-items: center;
   gap: calc(var(--spacing) * 2);
-  padding: calc(var(--spacing) * 3.5);
+  padding: calc(var(--spacing) * 4);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border-radius: 12px;
   background: var(--color-card);
+  box-shadow: var(--shadow-md);
 }
 .btn-primary, .btn-ghost {
   display: inline-flex;
@@ -1013,7 +1025,7 @@ textarea.input-shell { height: auto; min-height: 60px; padding: calc(var(--spaci
 .batch-summary { display: flex; gap: calc(var(--spacing) * 2); }
 .summary-pill { padding: 2px calc(var(--spacing) * 2); border-radius: 999px; font-size: 11.5px; font-weight: 500; }
 .summary-pill.ok { background: var(--color-success-subtle); color: var(--color-success-strong); }
-.summary-pill.warn { background: var(--color-primary); color: var(--color-primary-fg); }
+.summary-pill.warn { background: var(--color-warning-subtle); color: var(--color-warning-strong); }
 .table-wrap { min-width: 0; overflow-x: auto; }
 .data-table { width: 100%; min-width: 620px; border-collapse: collapse; table-layout: fixed; }
 .data-table th, .data-table td { padding: calc(var(--spacing) * 2.5) calc(var(--spacing) * 3); border-bottom: 1px solid var(--color-border); text-align: left; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }

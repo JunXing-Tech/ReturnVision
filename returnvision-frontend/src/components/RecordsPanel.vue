@@ -460,10 +460,10 @@ onMounted(() => loadRecords());
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 16px;
-  background: var(--color-accent);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  padding: 12px 16px;
+  background: var(--color-warning-subtle);
+  border: 1px solid var(--color-warning);
+  border-radius: 12px;
 }
 .batch-left { display: flex; align-items: center; gap: 12px; }
 .batch-text { font-size: 13px; font-weight: 600; color: var(--color-fg); }
@@ -495,8 +495,8 @@ onMounted(() => loadRecords());
   gap: 6px;
   padding: 6px 12px;
   background: transparent;
-  color: var(--color-accent, #14b8a6);
-  border: 1px solid var(--color-accent, #14b8a6);
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
   border-radius: 8px;
   font-size: 13px;
   font-weight: 500;
@@ -504,8 +504,8 @@ onMounted(() => loadRecords());
   transition: background 0.2s, color 0.2s;
 }
 .btn-export:hover:not(:disabled) {
-  background: var(--color-accent, #14b8a6);
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-primary-fg);
 }
 .btn-export:disabled {
   opacity: 0.5;
@@ -535,8 +535,9 @@ onMounted(() => loadRecords());
 .card {
   background: var(--color-card);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border-radius: 12px;
   overflow: hidden;
+  box-shadow: var(--shadow-md);
 }
 .card-header {
   display: flex;
@@ -563,7 +564,10 @@ onMounted(() => loadRecords());
   background: var(--color-bg);
   transition: var(--transition);
 }
-.search-shell:focus-within { border-color: var(--color-primary); }
+.search-shell:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(56, 123, 255, 0.15);
+}
 .search-shell svg { width: 14px; height: 14px; color: var(--color-fg-muted); flex-shrink: 0; }
 .search-input {
   border: none;
@@ -623,17 +627,17 @@ onMounted(() => loadRecords());
 
 /* 步骤16：行状态视觉区分 */
 tr.row-pending {
-  background: var(--color-muted);
-  box-shadow: inset 2px 0 0 var(--color-accent);
+  background: var(--color-warning-subtle);
+  box-shadow: inset 2px 0 0 var(--color-warning);
 }
 tr.row-synced { background: var(--color-bg); }
 /* F02 超期预警：待确认超过 24 小时标黄 */
 tr.row-overdue {
-  background: rgba(245, 158, 11, 0.08);
-  box-shadow: inset 2px 0 0 #f59e0b;
+  background: var(--color-warning-subtle);
+  box-shadow: inset 2px 0 0 var(--color-warning-strong);
 }
-tr.row-overdue:hover { background: rgba(245, 158, 11, 0.15) !important; }
-.data-table tbody tr:hover { background: var(--color-accent); }
+tr.row-overdue:hover { background: var(--color-warning-subtle) !important; opacity: 0.8; }
+.data-table tbody tr:hover { background: var(--color-muted); }
 
 /* 步骤17：自定义复选框 */
 .cb {
@@ -681,9 +685,8 @@ tr.row-overdue:hover { background: rgba(245, 158, 11, 0.15) !important; }
   white-space: nowrap;
 }
 .pill-pending {
-  background: var(--color-accent);
-  color: var(--color-accent-fg);
-  border: 1px solid var(--color-border);
+  background: var(--color-warning-subtle);
+  color: var(--color-warning-strong);
 }
 .pill-synced {
   background: var(--color-success-subtle);

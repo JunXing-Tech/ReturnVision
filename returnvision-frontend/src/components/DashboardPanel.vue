@@ -24,6 +24,10 @@
           <TrendingUp />
           <span>{{ kpi.delta }}</span>
         </div>
+        <!-- 步骤2.1：sparkline 迷你趋势图（7 根小柱，数据来自后端真实趋势） -->
+        <div class="kpi-spark">
+          <div v-for="(h, i) in (sparkSeries[kpi.sparkKey] || [])" :key="i" class="kpi-spark-bar" :style="{ height: h + '%' }"></div>
+        </div>
         <div class="metric-foot">{{ kpi.foot }}</div>
       </div>
     </section>
@@ -137,12 +141,22 @@ const props = defineProps({
 const emit = defineEmits(['navigate']);
 
 // 步骤6：KPI 指标数据（含硬编码兜底值，接口失败时展示）
+// sparkline 趋势数据由后端 getDashboardStats 返回（pending_trend / synced_trend / trend），
+// 经 sparkSeries computed 转成柱高百分比后驱动渲染，不再使用硬编码占位
 const kpis = ref([
-  { eyebrow: '待处理', title: '待确认', value: '-', delta: '', foot: '需人工复核' },
-  { eyebrow: '已完成', title: '已同步', value: '-', delta: '', foot: '已写入飞书' },
-  { eyebrow: '今日', title: '今日新增', value: '-', delta: '', foot: '今日识别' },
-  { eyebrow: '累计', title: '总记录', value: '-', delta: '', foot: '全部退货记录' },
+  { eyebrow: '待处理', title: '待确认', value: '-', delta: '', foot: '需人工复核', sparkKey: 'pending_trend' },
+  { eyebrow: '已完成', title: '已同步', value: '-', delta: '', foot: '已写入飞书', sparkKey: 'synced_trend' },
+  { eyebrow: '今日', title: '今日新增', value: '-', delta: '', foot: '今日识别', sparkKey: 'today_trend' },
+  { eyebrow: '累计', title: '总记录', value: '-', delta: '', foot: '全部退货记录', sparkKey: 'total_trend' },
 ]);
+
+// 步骤6.1：sparkline 趋势原始数据（后端返回的 4 组 [{date, count}, ...]）
+const sparkRaw = ref({
+  pending_trend: [],
+  synced_trend: [],
+  today_trend: [],
+  total_trend: [],
+});
 
 // F02 超期预警：待确认超过 24h 的数量
 const overdueCount = ref(0);
@@ -152,6 +166,51 @@ const records = ref([]);
 
 // 步骤8：近7日趋势数据（从后端加载，含日期+数量）
 const trendData = ref([]);
+
+// 步骤8.1：computed - 把后端返回的趋势原始数据转成 4 个 KPI 的 sparkline 柱高百分比数组
+// 每个 KPI 对应一组 7 天的柱高百分比（0-100），缺失的天补 0
+const sparkSeries = computed(() => {
+  const today = new Date();
+  const result = { pending_trend: [], synced_trend: [], today_trend: [], total_trend: [] };
+
+  // 辅助：把后端 [{date,count}] 转成最近 7 天的数值数组（补 0）
+  const fill7Days = (rawArr) => {
+    const dateMap = new Map();
+    if (rawArr && rawArr.length) {
+      rawArr.forEach(item => {
+        const rawDate = String(item.date || '').split(' ')[0];
+        dateMap.set(rawDate, Number(item.count) || 0);
+      });
+    }
+    const vals = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      vals.push(dateMap.get(key) || 0);
+    }
+    return vals;
+  };
+
+  // today_trend = 每日新增总量（后端 trend 字段）
+  result.today_trend = fill7Days(sparkRaw.value.today_trend);
+  // pending_trend = 每日新增待确认
+  result.pending_trend = fill7Days(sparkRaw.value.pending_trend);
+  // synced_trend = 每日新增已同步
+  result.synced_trend = fill7Days(sparkRaw.value.synced_trend);
+  // total_trend = 累计总量趋势（用 today_trend 逐日累加，体现递增）
+  let acc = 0;
+  result.total_trend = result.today_trend.map(v => { acc += v; return acc; });
+
+  // 转成柱高百分比（0-100，最大值对应 100%）
+  Object.keys(result).forEach(key => {
+    const arr = result[key];
+    const maxVal = Math.max(...arr, 1);
+    result[key] = arr.map(v => Math.max(Math.round((v / maxVal) * 100), v > 0 ? 8 : 2));
+  });
+
+  return result;
+});
 
 // 步骤9：计算属性 - 从 trendData 构建柱状图数据
 const chartData = computed(() => {
@@ -255,6 +314,14 @@ const loadDashboardData = async () => {
       if (Array.isArray(s.trend)) {
         trendData.value = s.trend;
       }
+      // 步骤15.1：填充 sparkline 趋势数据（4 个 KPI 各自的近 7 天序列）
+      // today_trend 复用 trend（每日新增总量）；pending/synced 由后端单独返回
+      sparkRaw.value = {
+        pending_trend: s.pending_trend || [],
+        synced_trend: s.synced_trend || [],
+        today_trend: s.trend || [],
+        total_trend: s.trend || [],  // total_trend 在 computed 里用累加逻辑处理
+      };
     }
   } catch (err) {
     // 接口不可用时保持默认值
@@ -419,6 +486,26 @@ watch(() => props.active, (newVal) => {
   color: var(--color-fg-muted);
 }
 
+/* ===== KPI sparkline 迷你趋势图 ===== */
+.kpi-spark {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 32px;
+  padding: 4px 0;
+}
+.kpi-spark-bar {
+  flex: 1;
+  min-width: 0;
+  border-radius: 2px 2px 0 0;
+  background: var(--color-chart-1);
+  opacity: 0.6;
+  transition: var(--transition);
+}
+.kpi-card:hover .kpi-spark-bar {
+  opacity: 0.85;
+}
+
 /* ===== 主内容区网格 ===== */
 .main-content {
   display: grid;
@@ -429,9 +516,10 @@ watch(() => props.active, (newVal) => {
 /* ===== 通用卡片 ===== */
 .card {
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border-radius: 12px;
   background: var(--color-card);
-  padding: calc(var(--spacing) * 3.5);
+  padding: calc(var(--spacing) * 4);
+  box-shadow: var(--shadow-md);
 }
 .card-header {
   display: flex;
@@ -490,8 +578,8 @@ watch(() => props.active, (newVal) => {
   font-weight: 600;
 }
 .pill-pending {
-  background: var(--color-accent);
-  color: var(--color-accent-fg);
+  background: var(--color-warning-subtle);
+  color: var(--color-warning-strong);
 }
 .pill-synced {
   background: var(--color-success-subtle);

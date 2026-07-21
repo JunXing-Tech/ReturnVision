@@ -9,7 +9,10 @@ export default defineConfig({
     proxy: {
       '/api': {
         target: 'http://localhost:8080',
-        changeOrigin: true
+        changeOrigin: true,
+        // SSE 流式上传需要禁用代理超时，否则长连接会被中断导致 "Failed to fetch"
+        timeout: 0,
+        proxyTimeout: 0,
       }
     }
   }

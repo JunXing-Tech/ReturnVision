@@ -42,6 +42,6 @@ export const LogoutIcon = icon(['M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4', 'm16 
 export const ClipboardList = icon(['M9 3h6a1 1 0 0 1 1 1v1h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2V4a1 1 0 0 1 1-1z', 'M9 12h6', 'M9 16h6', 'M9 8h6']);
 export const Download = icon(['M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4', 'M7 10l5 5 5-5', 'M12 15V3']);
 
-// 主题切换图标
-export const Sun = icon(['M12 12 m-4 0 a4 4 0 1 0 8 0 a4 4 0 1 0 -8 0', 'M12 2 V4', 'M12 20 V22', 'M4.93 4.93 L6.34 6.34', 'M17.66 17.66 L19.07 19.07', 'M2 12 H4', 'M20 12 H22', 'M4.93 19.07 L6.34 17.66', 'M17.66 6.34 L19.07 4.93']);
-export const Moon = icon(['M12 3 a6 6 0 0 0 9 9 9 9 0 1 1 -9 -9']);
+// 主题切换图标（已移除暗色模式，保留导出以防外部引用）
+// export const Sun = icon([...]);
+// export const Moon = icon([...]);
