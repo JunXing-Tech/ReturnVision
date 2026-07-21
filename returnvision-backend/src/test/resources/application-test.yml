@@ -1,0 +1,79 @@
+# 测试 profile 配置
+# 作用：让所有 src/test 下的测试默认进入此 profile，外部依赖密钥置空触发降级或由 Mockito mock
+# 注意：本 profile 不连真实 MySQL/不调真实 OCR/LLM/COS/飞书
+# TODO（Phase 2）：当引入 @SpringBootTest 时，在此添加 datasource（H2 MySQL 模式 或 Testcontainers）
+
+server:
+  port: 0
+
+# 智谱OCR（引擎A）：空凭证，不调真实服务
+# 注意：OcrZhipuService 当前不降级，测试中遇到需要真实调用时必须 Mockito mock
+zhipu:
+  api-key: ""
+
+# 阿里云OCR（引擎B）：空凭证
+aliyun:
+  ocr:
+    access-key-id: ""
+    access-key-secret: ""
+
+# 腾讯云COS：空凭证，触发 CosClientService cosClient=null 降级
+cos:
+  secret-id: ""
+  secret-key: ""
+  region: ap-guangzhou
+  bucket: ""
+
+# DeepSeek LLM：空凭证，触发 LlmAnalyzerService 降级返回空对象
+deepseek:
+  api-key: ""
+  base-url: https://api.deepseek.com
+  model: deepseek-v4-flash
+
+# 飞书：空凭证，触发 FeishuService 返回 null
+feishu:
+  app-id: ""
+  app-secret: ""
+  app-token: ""
+  table-id: ""
+  bot-webhook: ""
+  oauth:
+    client-id: ""
+    client-secret: ""
+    redirect-uri: https://returnvision.jxing.tech/login
+
+# JWT：给一个测试专用 secret（不与生产共用）
+jwt:
+  secret: test-secret-for-jwt-must-be-long-enough-placeholder-0123456789
+  access-token-expiration: 7200
+  refresh-token-expiration: 604800
+
+# 数据保留期：与生产一致，不影响测试逻辑
+retention:
+  return-record:
+    days: 90
+  pending-remind:
+    days: 30
+  audit-log:
+    days: 180
+  ocr-log:
+    days: 30
+  batch-size: 500
+  batch-sleep-ms: 100
+
+# 导出管控
+export:
+  max-rows-per-export: 1000
+  max-exports-per-day: 5
+
+# 异常监控告警：测试中关闭，避免误触飞书机器人
+alert:
+  enabled: false
+  dedup-window-ms: 300000
+  feishu-fail-threshold: 3
+
+# 测试时降低日志噪音
+logging:
+  level:
+    root: WARN
+    tech.jxing.returnvision: INFO
