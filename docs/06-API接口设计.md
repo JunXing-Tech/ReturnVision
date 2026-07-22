@@ -807,3 +807,61 @@ DELETE /api/admin/dict/items/{id}
 | 2104 | 字典项不存在 |
 
 ---
+
+## 七、退货报表接口（F04，v2.3 新增）
+
+> 关联：[docs/04 第 4.12 节](./04-详细方案设计.md) F04
+> 权限：所有登录用户可访问（数据范围按角色过滤）
+
+### 7.1 接口列表
+
+| 方法 | 路径 | 权限 | 说明 |
+|------|------|------|------|
+| GET | /api/reports | 登录 | 多维度退货报表（4 个维度） |
+
+### 7.2 获取多维度退货报表
+
+```
+GET /api/reports?days=7
+```
+
+**参数**：
+| 参数 | 类型 | 默认 | 说明 |
+|------|------|------|------|
+| days | int | 7 | 统计天数，可选 7/30/90，越界回退 7 |
+
+**数据范围**：
+- STAFF：只能看自己处理的记录（created_by = 当前用户）
+- SUPERVISOR/ADMIN：看全部记录
+
+**状态过滤**：只统计 synced（已闭环的退货）
+
+**响应**：
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "days": 7,
+    "category_breakdown": [
+      { "name": "质量问题", "count": 15, "percentage": 50.0 }
+    ],
+    "express_breakdown": [
+      { "name": "顺丰", "count": 10, "percentage": 33.33 }
+    ],
+    "reason_top10": [
+      { "name": "破损", "count": 8, "percentage": 26.67 }
+    ],
+    "trend": [
+      { "date": "2026-07-15", "count": 5 }
+    ]
+  }
+}
+```
+
+**空值兜底**：
+- return_category 为空 -> 归到"未分类"
+- express_company 为空 -> 归到"未知"
+- return_reason 为空 -> 归到"未标注"
+
+---

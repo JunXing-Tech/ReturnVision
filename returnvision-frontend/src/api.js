@@ -403,4 +403,15 @@ export default {
   disableDictItem(id) {
     return api.delete(`/admin/dict/items/${id}`);
   },
+
+  // ==================== 退货报表接口（F04） ====================
+
+  /**
+   * 获取多维度退货报表（登录即可，STAFF 只看自己的）
+   * @param {number} days 统计天数，默认 7，可选 7/30/90
+   * @returns {Promise} { category_breakdown, express_breakdown, reason_top10, trend }
+   */
+  getReport(days = 7) {
+    return api.get('/reports', { params: { days } });
+  },
 };
