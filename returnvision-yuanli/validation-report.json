@@ -10,7 +10,7 @@
   },
   "operatingMode": "library-bound",
   "renderBlockingErrorCount": 0,
-  "softWarningCount": 17,
+  "softWarningCount": 19,
   "renderBlockingErrors": [],
   "softWarnings": [
     "[library-bound-css] audit-log.html: Library-bound mode discourages custom CSS class definitions in <style> blocks (.app-shell, .sidebar, .content, .workspace, .workspace-trigger, .workspace-logo, .workspace-info, .workspace-name). Prefer Tailwind utilities plus Library brand CSS variables/component JSON instead.",
@@ -28,12 +28,14 @@
     "[library-bound-css] recognition.html: Library-bound mode discourages custom CSS class definitions in <style> blocks (.app-shell-host, .recognition-flow, .card-eyebrow, .status-banner, .banner-icon, .banner-text, .banner-title, .banner-desc). Prefer Tailwind utilities plus Library brand CSS variables/component JSON instead.",
     "[library-bound-css] records.html: Library-bound mode discourages custom CSS class definitions in <style> blocks (.app-shell, .sidebar, .content, .workspace, .workspace-trigger, .workspace-logo, .workspace-info, .workspace-name). Prefer Tailwind utilities plus Library brand CSS variables/component JSON instead.",
     "[library-bound-css] records.html: Library-bound mode discourages custom CSS class definitions in <style> blocks (.records-page, .records-toolbar, .filter-tabs, .filter-tab, .active, .tab-count, .tab-count-warning, .tab-count-success). Prefer Tailwind utilities plus Library brand CSS variables/component JSON instead.",
+    "[library-bound-css] report.html: Library-bound mode discourages custom CSS class definitions in <style> blocks (.app-shell, .sidebar, .content, .workspace, .workspace-trigger, .workspace-logo, .workspace-info, .workspace-name). Prefer Tailwind utilities plus Library brand CSS variables/component JSON instead.",
+    "[library-bound-css] report.html: Library-bound mode discourages custom CSS class definitions in <style> blocks (.app-shell-host, .report-page, .report-update-pill, .kpi-grid, .kpi-card, .kpi-eyebrow, .kpi-value, .kpi-value-num). Prefer Tailwind utilities plus Library brand CSS variables/component JSON instead.",
     "[library-bound-css] user-manage.html: Library-bound mode discourages custom CSS class definitions in <style> blocks (.app-shell, .sidebar, .content, .workspace, .workspace-trigger, .workspace-logo, .workspace-info, .workspace-name). Prefer Tailwind utilities plus Library brand CSS variables/component JSON instead.",
     "[library-bound-css] user-manage.html: Library-bound mode discourages custom CSS class definitions in <style> blocks (.app-shell-host, .user-page, .user-toolbar, .role-filter, .role-pill, .active, .pill-count, .user-search). Prefer Tailwind utilities plus Library brand CSS variables/component JSON instead."
   ],
   "repairPlanHints": [],
   "errorCount": 0,
-  "warningCount": 17,
+  "warningCount": 19,
   "errors": [],
   "warnings": [
     "[library-bound-css] audit-log.html: Library-bound mode discourages custom CSS class definitions in <style> blocks (.app-shell, .sidebar, .content, .workspace, .workspace-trigger, .workspace-logo, .workspace-info, .workspace-name). Prefer Tailwind utilities plus Library brand CSS variables/component JSON instead.",
@@ -51,11 +53,13 @@
     "[library-bound-css] recognition.html: Library-bound mode discourages custom CSS class definitions in <style> blocks (.app-shell-host, .recognition-flow, .card-eyebrow, .status-banner, .banner-icon, .banner-text, .banner-title, .banner-desc). Prefer Tailwind utilities plus Library brand CSS variables/component JSON instead.",
     "[library-bound-css] records.html: Library-bound mode discourages custom CSS class definitions in <style> blocks (.app-shell, .sidebar, .content, .workspace, .workspace-trigger, .workspace-logo, .workspace-info, .workspace-name). Prefer Tailwind utilities plus Library brand CSS variables/component JSON instead.",
     "[library-bound-css] records.html: Library-bound mode discourages custom CSS class definitions in <style> blocks (.records-page, .records-toolbar, .filter-tabs, .filter-tab, .active, .tab-count, .tab-count-warning, .tab-count-success). Prefer Tailwind utilities plus Library brand CSS variables/component JSON instead.",
+    "[library-bound-css] report.html: Library-bound mode discourages custom CSS class definitions in <style> blocks (.app-shell, .sidebar, .content, .workspace, .workspace-trigger, .workspace-logo, .workspace-info, .workspace-name). Prefer Tailwind utilities plus Library brand CSS variables/component JSON instead.",
+    "[library-bound-css] report.html: Library-bound mode discourages custom CSS class definitions in <style> blocks (.app-shell-host, .report-page, .report-update-pill, .kpi-grid, .kpi-card, .kpi-eyebrow, .kpi-value, .kpi-value-num). Prefer Tailwind utilities plus Library brand CSS variables/component JSON instead.",
     "[library-bound-css] user-manage.html: Library-bound mode discourages custom CSS class definitions in <style> blocks (.app-shell, .sidebar, .content, .workspace, .workspace-trigger, .workspace-logo, .workspace-info, .workspace-name). Prefer Tailwind utilities plus Library brand CSS variables/component JSON instead.",
     "[library-bound-css] user-manage.html: Library-bound mode discourages custom CSS class definitions in <style> blocks (.app-shell-host, .user-page, .user-toolbar, .role-filter, .role-pill, .active, .pill-count, .user-search). Prefer Tailwind utilities plus Library brand CSS variables/component JSON instead."
   ],
   "designDir": "d:\\Project\\ReturnVision\\returnvision-yuanli",
-  "expectedPages": 9,
+  "expectedPages": 10,
   "requireInteractions": null,
-  "checkedAt": "2026-07-20T16:16:12.638Z"
+  "checkedAt": "2026-07-22T02:20:16.213Z"
 }
