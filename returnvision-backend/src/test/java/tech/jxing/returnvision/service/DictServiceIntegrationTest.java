@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import tech.jxing.returnvision.common.exception.BizException;
 import tech.jxing.returnvision.model.entity.SysDict;
 import tech.jxing.returnvision.model.entity.SysDictItem;
+import tech.jxing.returnvision.model.mapper.SysDictItemMapper;
 import tech.jxing.returnvision.model.mapper.SysDictMapper;
 
 import java.util.List;
@@ -39,6 +40,9 @@ class DictServiceIntegrationTest {
 
     @Autowired
     private SysDictMapper dictMapper;
+
+    @Autowired
+    private SysDictItemMapper dictItemMapper;
 
     private Long getReturnCategoryDictId() {
         SysDict dict = dictMapper.selectOne(
@@ -214,5 +218,33 @@ class DictServiceIntegrationTest {
     void getItemLabelByCode_shouldReturnLabel() {
         String label = dictService.getItemLabelByCode("QUALITY");
         assertEquals("质量问题", label);
+    }
+
+    // ============ 线上 Bug 回归测试（2026-07-22 紧急修复） ============
+
+    @Test
+    @DisplayName("BUG-FIX：新唯一约束 uk(dict_id, item_code) 防止重复插入")
+    void newUniqueConstraint_shouldPreventDuplicates() {
+        Long dictId = getReturnCategoryDictId();
+        SysDictItem item1 = new SysDictItem();
+        item1.setDictId(dictId);
+        item1.setParentId(null);
+        item1.setItemCode("CONSTRAINT_TEST");
+        item1.setItemLabel("第一");
+        item1.setIsLeaf(true);
+        item1.setSortOrder(50);
+        dictService.createItem(item1);
+
+        SysDictItem item2 = new SysDictItem();
+        item2.setDictId(dictId);
+        item2.setParentId(null);
+        item2.setItemCode("CONSTRAINT_TEST");
+        item2.setItemLabel("第二");
+        item2.setIsLeaf(true);
+        item2.setSortOrder(51);
+
+        // 应被 createItem 的业务校验拦住（2102）
+        BizException ex = assertThrows(BizException.class, () -> dictService.createItem(item2));
+        assertEquals(2102, ex.getCode());
     }
 }

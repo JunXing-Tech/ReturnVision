@@ -336,17 +336,23 @@ public class DictService {
         }
 
         // 步骤2：查活跃项
-        SysDictItem item = dictItemMapper.selectOne(
+        // 注意：用 selectList 取第一条而非 selectOne，防御历史脏数据（F08 早期 uk 含 parent_id=NULL 导致重复）
+        List<SysDictItem> items = dictItemMapper.selectList(
                 new LambdaQueryWrapper<SysDictItem>()
                         .eq(SysDictItem::getDictId, dict.getId())
                         .eq(SysDictItem::getItemCode, itemCode)
-                        .eq(SysDictItem::getStatus, STATUS_ACTIVE));
-        if (item == null) {
+                        .eq(SysDictItem::getStatus, STATUS_ACTIVE)
+                        .orderByAsc(SysDictItem::getId)
+                        .last("LIMIT 1"));
+        if (items.isEmpty()) {
             log.warn("[字典管理] code={} 在活跃字典中未找到", itemCode);
             return null;
         }
+        if (items.size() > 1) {
+            log.warn("[字典管理] code={} 存在 {} 条重复记录，取第一条（请执行清理脚本）", itemCode, items.size());
+        }
 
-        return item.getItemLabel();
+        return items.get(0).getItemLabel();
     }
 
     /** SysDictItem 转 Map（前端/LLM 友好的扁平结构） */

@@ -33,7 +33,7 @@
           <div class="spinner-lg"></div>
           <div>
             <div class="processing-title">正在识别...</div>
-            <div class="processing-subtitle">平均耗时 8 秒，请勿关闭页面</div>
+            <div class="processing-subtitle">双引擎识别中，请勿关闭页面</div>
           </div>
         </div>
 

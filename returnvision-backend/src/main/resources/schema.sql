@@ -173,8 +173,13 @@ CREATE TABLE IF NOT EXISTS sys_dict_item (
     created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at   DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (dict_id) REFERENCES sys_dict(id) ON DELETE CASCADE,
-    UNIQUE KEY uk_dict_item (dict_id, parent_id, item_code) -- 同层级内 code 唯一
+    UNIQUE KEY uk_dict_item (dict_id, item_code)            -- 同字典内 code 唯一（不含 parent_id，避免 NULL 陷阱）
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 已部署环境升级：删旧约束（含 parent_id）加新约束（不含 parent_id）
+-- continue-on-error 忽略"约束不存在"错误（新环境首次建表无旧约束）
+ALTER TABLE sys_dict_item DROP INDEX uk_dict_item;
+ALTER TABLE sys_dict_item ADD UNIQUE KEY uk_dict_item (dict_id, item_code);
 
 CREATE INDEX idx_sys_dict_item_dict ON sys_dict_item(dict_id);
 CREATE INDEX idx_sys_dict_item_parent ON sys_dict_item(parent_id);

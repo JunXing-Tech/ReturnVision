@@ -178,7 +178,7 @@ class DictServiceTest {
     void getItemLabelByCode_shouldReturnLabel() {
         when(dictMapper.selectOne(any())).thenReturn(activeDict());
         SysDictItem item = leafItem(1L, "QUALITY", "质量问题", 1);
-        when(dictItemMapper.selectOne(any())).thenReturn(item);
+        when(dictItemMapper.selectList(any())).thenReturn(List.of(item));
 
         String label = service.getItemLabelByCode("QUALITY");
         assertEquals("质量问题", label);
@@ -188,7 +188,7 @@ class DictServiceTest {
     @DisplayName("AT-12b：code 不在活跃字典中 -> 返回 null（调用方降级'其他'）")
     void getItemLabelByCode_notFound_shouldReturnNull() {
         when(dictMapper.selectOne(any())).thenReturn(activeDict());
-        when(dictItemMapper.selectOne(any())).thenReturn(null);
+        when(dictItemMapper.selectList(any())).thenReturn(List.of());
 
         String label = service.getItemLabelByCode("UNKNOWN");
         assertNull(label);
