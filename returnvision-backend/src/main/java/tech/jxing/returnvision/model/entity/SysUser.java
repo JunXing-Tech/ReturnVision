@@ -35,6 +35,9 @@ public class SysUser {
     @TableField("feishu_user_id")
     private String feishuUserId;              // 飞书 user_id（OAuth 绑定用，可为空）
 
+    @TableField("wx_openid")
+    private String wxOpenid;                  // 微信小程序 openid（自助绑定用，可为空）
+
     @TableField("status")
     private String status;                    // active/disabled
 

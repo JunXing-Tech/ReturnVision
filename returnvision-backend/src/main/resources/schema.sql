@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS sys_user (
     password_hash   VARCHAR(100),                        -- BCrypt 哈希（飞书 OAuth 用户可为空）
     display_name    VARCHAR(50),                         -- 显示名称
     feishu_user_id  VARCHAR(50),                         -- 飞书 user_id（OAuth 绑定用，可为空）
+    wx_openid       VARCHAR(64),                         -- 微信小程序 openid（自助绑定用，可为空）
     status          VARCHAR(20) DEFAULT 'active',        -- active/disabled
     last_login_at   DATETIME,                            -- 最后登录时间
     created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -71,6 +72,10 @@ CREATE TABLE IF NOT EXISTS sys_user (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE INDEX idx_sys_user_feishu ON sys_user(feishu_user_id);
+
+-- 小程序扩展：微信 openid 自助绑定（已存在的表用 ALTER 升级，continue-on-error 忽略重复）
+ALTER TABLE sys_user ADD COLUMN wx_openid VARCHAR(64) COMMENT '微信小程序 openid（自助绑定用，可为空）';
+CREATE UNIQUE INDEX uk_sys_user_wx_openid ON sys_user(wx_openid);
 
 -- 角色表
 CREATE TABLE IF NOT EXISTS sys_role (
