@@ -75,6 +75,7 @@ ReturnVision/                        # 项目根目录
 - docs/10-产品演进与功能可行性方案.md（产品视角缺口与演进路线）
 - docs/11-开发流程规范.md（影响面评估清单 + 端到端流程）
 - docs/12-前端设计规范.md（前端技术栈、设计 token、页面脚手架）
+- docs/13-微信小程序方案设计.md（小程序端技术选型、后端增量、用户体系、部署发布）
 
 **部署相关**：
 - deploy/ 目录（Docker Compose + Nginx + deploy.sh），线上部署与配置以其中文件为准
@@ -459,3 +460,4 @@ GitHub Actions（[.github/workflows/ci.yml](.github/workflows/ci.yml)）在 push
 | 产品演进 -> docs/10-产品演进与功能可行性方案.md |
 | 开发流程 -> docs/11-开发流程规范.md |
 | 前端规范 -> docs/12-前端设计规范.md |
+| 微信小程序 -> docs/13-微信小程序方案设计.md |

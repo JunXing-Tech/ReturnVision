@@ -9,7 +9,9 @@
 | 接口 | 方法 | 说明 | 鉴权 |
 |------|------|------|------|
 | `/api/upload` | POST | 上传图片，返回 OCR 识别结果 | ✅ 需登录 |
-| `/api/upload/sse` | POST | SSE 流式上传识别 | ✅ 需登录 |
+| `/api/upload/sse` | POST | SSE 流式上传识别（PC 端） | ✅ 需登录 |
+| `/api/upload/async` | POST | 异步上传识别，返回 taskId（小程序端） | ✅ 需登录 |
+| `/api/upload/status/{taskId}` | GET | 查询异步任务进度（轮询降级用） | ✅ 需登录 |
 | `/api/upload/batch` | POST | 批量上传识别 | ✅ 需登录 |
 | `/api/confirm` | POST | 确认识别结果，写入飞书表格 | ✅ 需登录 |
 | `/api/confirm/batch` | POST | 批量确认写入飞书 | ✅ 需登录 |
@@ -340,10 +342,11 @@ Content-Type: application/json
 | 1001 | 用户名或密码错误 |
 | 1002 | 记录不存在（已有，复用） |
 | 1003 | refresh token 已失效或过期 |
-| 1004 | 飞书账号未绑定 |
+| 1004 | 第三方账号未绑定（飞书/微信，微信场景 data 带 bind_token） |
 | 1005 | 账号已禁用 |
 | 1006 | 旧密码错误 |
 | 1007 | 用户名已存在（用户管理用） |
+| 1008 | 绑定凭证（bind_token）已失效或过期，需重新 wx-login |
 | 401 | 未登录（token 无效或过期） |
 | 403 | 权限不足 |
 
@@ -419,6 +422,209 @@ const response = await fetch('/api/upload/sse', {
 ```
 
 > 后端 JwtAuthenticationFilter 会从 Header 解析 token，对 SSE 接口同样生效。
+
+### 2.11 微信小程序登录与异步上传（v1.3 新增）
+
+> 关联：[docs/13-微信小程序方案设计.md](./13-微信小程序方案设计.md)
+> 状态：📋 设计中（待编码）
+> 权限：wx-login / wx-bind 公开（permitAll）；upload/async / upload/status / WebSocket 需登录
+
+#### 2.11.1 接口列表
+
+| 接口 | 方法 | 说明 | 鉴权 |
+|------|------|------|------|
+| `/api/auth/wx-login` | POST | 微信登录（code 换 openid，已绑定则签发 JWT） | ❌ 公开 |
+| `/api/auth/wx-bind` | POST | 自助绑定（bind_token + 账号密码，写入 wx_openid） | ❌ 公开 |
+| `/api/upload/async` | POST | 异步上传，返回 taskId | ✅ 需登录 |
+| `/api/upload/status/{taskId}` | GET | 查询任务进度（轮询降级用） | ✅ 需登录 |
+| `/ws/upload` | WebSocket | 订阅任务进度推送 | ✅ 需登录（HandshakeInterceptor） |
+
+#### 2.11.2 微信登录
+
+```
+POST /api/auth/wx-login
+Content-Type: application/json
+
+# 请求（前端 wx.login() 拿到 code 后调后端）
+{
+  "code": "xxxxxx"
+}
+
+# 响应（成功，已绑定账号）
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "access_token": "eyJhbGciOiJIUzI1NiJ9...",
+    "refresh_token": "dGhpcyBpcyBhIHJlZnJl...",
+    "expires_in": 7200,
+    "user": {
+      "id": 2,
+      "username": "zhangsan",
+      "display_name": "张三",
+      "roles": ["STAFF"],
+      "must_change_password": false
+    }
+  }
+}
+
+# 响应（未绑定，返回 bind_token 供自助绑定）
+{
+  "code": 1004,
+  "msg": "微信账号未绑定，请先绑定账号",
+  "data": {
+    "bind_token": "eyJhbGciOiJIUzI1NiJ9..."
+  }
+}
+```
+
+> 后端流程：code -> 调微信 code2session 换 openid -> 查 sys_user.wx_openid -> 已绑定签发 JWT / 未绑定返回 1004 + bind_token。
+> bind_token 安全：复用 JwtUtil 生成，payload 含 openid，有效期 5 分钟，一次性（绑定后 openid 已存在，不会再走 bind）。
+
+#### 2.11.3 自助绑定
+
+```
+POST /api/auth/wx-bind
+Content-Type: application/json
+
+# 请求
+{
+  "bind_token": "eyJhbGciOiJIUzI1NiJ9...",
+  "username": "zhangsan",
+  "password": "明文密码"
+}
+
+# 响应（成功，绑定完成并签发 JWT）
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "access_token": "...",
+    "refresh_token": "...",
+    "expires_in": 7200,
+    "user": { ... }
+  }
+}
+
+# 响应（用户名或密码错误）
+{
+  "code": 1001,
+  "msg": "用户名或密码错误",
+  "data": null
+}
+
+# 响应（bind_token 过期或无效）
+{
+  "code": 1008,
+  "msg": "绑定凭证已失效，请重新登录",
+  "data": null
+}
+```
+
+> 后端流程：校验 bind_token 拿 openid -> 校验 username+password 拿 sys_user -> 检查 openid 未被绑定过 -> 写入 wx_openid -> 签发 JWT。
+
+#### 2.11.4 异步上传
+
+```
+POST /api/upload/async
+Authorization: Bearer <access_token>
+Content-Type: multipart/form-data
+
+# 请求
+file: [快递单照片]
+
+# 响应（立即返回 taskId，不阻塞等结果）
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "task_id": "a1b2c3d4-e5f6-7890"
+  }
+}
+```
+
+> 后端流程：上传 COS -> 生成 taskId 存内存 taskStore -> 提交异步线程跑处理链路 -> 立即返回 taskId。
+> 异步链路复用现有 OCR + 交叉验证 + LLM + 飞书写入 Service 逻辑，进度通过 WebSocket 推送。
+
+#### 2.11.5 查询任务进度（轮询降级用）
+
+```
+GET /api/upload/status/{taskId}
+Authorization: Bearer <access_token>
+
+# 响应（任务进行中）
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "task_id": "a1b2c3d4...",
+    "status": "active",
+    "current_step": 2,
+    "steps": [
+      { "step": 1, "label": "上传至云存储", "status": "done" },
+      { "step": 2, "label": "双引擎OCR并行识别", "status": "active" }
+    ]
+  }
+}
+
+# 响应（任务完成）
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "task_id": "a1b2c3d4...",
+    "status": "done",
+    "current_step": 4,
+    "result": { ...识别结果，同 SSE result 事件的 data... }
+  }
+}
+
+# 响应（任务不存在/已失效，如重启后）
+{
+  "code": 2002,
+  "msg": "任务不存在或已失效，请重新上传",
+  "data": null
+}
+```
+
+#### 2.11.6 WebSocket 协议
+
+**端点**：`wss://returnvision.jxing.tech/ws/upload?access_token=<token>`
+
+**握手鉴权**：HandshakeInterceptor 校验 query 参数 access_token，失败拒绝握手。
+
+**客户端 -> 服务端消息**：
+
+```json
+{ "action": "subscribe", "taskId": "a1b2c3d4..." }
+{ "action": "ping" }
+```
+
+**服务端 -> 客户端推送**（事件结构与 SSE 1:1 对齐，含全部字段）：
+
+```json
+{ "type": "step", "step": 1, "label": "上传至云存储", "status": "done", "subSteps": null, "meta": null }
+{ "type": "step", "step": 2, "label": "双引擎OCR并行识别", "status": "active", "subSteps": [{"name":"智谱OCR","status":"active"},{"name":"阿里云OCR","status":"active"}] }
+{ "type": "result", "data": { ...扁平化识别结果... } }
+{ "type": "error", "msg": "处理失败原因" }
+{ "action": "pong" }
+```
+
+**心跳与重连**：
+- 心跳：客户端每 30s 发 `{action:"ping"}`，服务端回 `{action:"pong"}`；60s 未收到 pong 视为断连
+- 重连：客户端自动重连（最多 3 次，间隔 2s/4s/8s 指数退避）
+- 重连后重新 subscribe 同一 taskId，服务端从内存 taskStore 补推已完成的步骤
+- 连续重连 3 次失败 -> 降级为轮询 `/api/upload/status/{taskId}`（间隔 2s）
+
+**任务完成**：服务端推 `result` 事件后主动关闭连接。
+
+#### 2.11.7 错误码补充
+
+| 错误码 | 说明 |
+|--------|------|
+| 1004 | 微信账号未绑定（复用飞书未绑定错误码语义，data 带 bind_token） |
+| 1008 | 绑定凭证（bind_token）已失效或过期，需重新 wx-login |
+| 2002 | 任务不存在或已失效（重启后 taskId 失效） |
 
 ---
 
