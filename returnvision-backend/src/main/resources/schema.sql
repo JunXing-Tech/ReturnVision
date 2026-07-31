@@ -203,3 +203,62 @@ INSERT INTO sys_dict_item (dict_id, parent_id, item_code, item_label, is_leaf, s
     ((SELECT id FROM (SELECT id FROM sys_dict WHERE dict_code='return_category') t), NULL, 'PRICE',    '价格问题', 1, 4),
     ((SELECT id FROM (SELECT id FROM sys_dict WHERE dict_code='return_category') t), NULL, 'OTHER',    '其他',     1, 99)
 ON DUPLICATE KEY UPDATE item_label = VALUES(item_label), is_leaf = VALUES(is_leaf), sort_order = VALUES(sort_order);
+
+-- ============================================================
+-- 多租户改造（v2.3 新增，详见 docs/14 + docs/05 第 4.5.12 节）
+-- 设计要点：
+--   1. feishu_config 隔离每家公司的飞书应用配置，app_secret AES/GCM 加密存储
+--   2. register_code 注册码表，公司管理员生成，普通用户用码注册
+--   3. sys_user / return_records 加 feishu_config_id 软关联（NULL=平台级）
+--   4. 历史数据迁移：return_records.feishu_config_id 默认设为预置主公司行的 id
+--   5. continue-on-error 忽略重复列/重复键错误，兼容新环境建表与已部署环境升级
+-- ============================================================
+
+-- 飞书多租户配置表
+CREATE TABLE IF NOT EXISTS feishu_config (
+    id              BIGINT PRIMARY KEY AUTO_INCREMENT,
+    org_name        VARCHAR(100) NOT NULL COMMENT '公司/组织名称',
+    app_id          VARCHAR(50)  NOT NULL COMMENT '飞书应用 ID',
+    app_secret      VARCHAR(255) NOT NULL COMMENT '飞书应用密钥（AES/GCM 加密，格式 iv:ciphertext:tag）',
+    aes_key_version INT DEFAULT 1 COMMENT '加密所用 AES 密钥版本（支持平滑轮换）',
+    app_token       VARCHAR(100) NOT NULL COMMENT '多维表格 app_token（系统自动创建）',
+    table_id        VARCHAR(50)  NOT NULL COMMENT '多维表格 table_id（系统自动创建）',
+    bot_webhook     VARCHAR(255) COMMENT '飞书机器人 webhook（可选）',
+    status          VARCHAR(20)  DEFAULT 'active' COMMENT 'active/disabled',
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 用户注册码表
+CREATE TABLE IF NOT EXISTS register_code (
+    id                BIGINT PRIMARY KEY AUTO_INCREMENT,
+    code              VARCHAR(16) NOT NULL UNIQUE COMMENT '注册码（8位字母数字，避免 0/O/1/I）',
+    feishu_config_id  BIGINT NOT NULL COMMENT '绑定的飞书配置',
+    max_uses          INT DEFAULT 1 COMMENT '最大使用次数（1=一次性，N=多人共用）',
+    used_count        INT DEFAULT 0 COMMENT '已使用次数',
+    expires_at        DATETIME COMMENT '过期时间（NULL=永不过期）',
+    status            VARCHAR(20) DEFAULT 'active' COMMENT 'active/revoked',
+    created_by        BIGINT COMMENT '创建人（公司 ADMIN）',
+    created_at        DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (feishu_config_id) REFERENCES feishu_config(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- sys_user 加 feishu_config_id（已存在的表用 ALTER 升级，continue-on-error 忽略重复列错误）
+-- NULL = 平台级（平台 ADMIN，用 .env 默认配置）；非空 = 绑某公司
+ALTER TABLE sys_user ADD COLUMN feishu_config_id BIGINT COMMENT '所属飞书配置（NULL=平台级/未绑公司）';
+CREATE INDEX idx_sys_user_feishu_config ON sys_user(feishu_config_id);
+
+-- return_records 加 feishu_config_id（记录创建时写入，confirm 按此查凭证，不是当前用户的）
+-- NULL = 平台级记录；非空 = 某公司记录
+ALTER TABLE return_records ADD COLUMN feishu_config_id BIGINT COMMENT '所属飞书配置（NULL=平台级，按公司隔离用）';
+CREATE INDEX idx_return_records_feishu_config ON return_records(feishu_config_id);
+
+-- 历史数据迁移（改进点 #7）：
+-- 历史记录 feishu_config_id 保持 NULL（平台级语义），不迁移到任何主公司行。
+-- 理由：主公司行的 app_secret 在 SQL 层无法 AES 加密填充（AES 密钥在应用层），
+--   若强行迁移会导致 confirm 查表拿到空串 app_secret -> 降级返回 null -> status=failed，
+--   破坏单租户回归（历史记录本应能用 .env 配置正常写飞书）。
+-- 正确行为：历史记录 feishu_config_id=NULL -> confirm 走 getDefaultConfig()（.env 默认配置）-> 与现状等价。
+-- 平台 ADMIN（feishu_config_id=null）查询时租户插件不加条件，能看到全部历史记录。
+-- 主公司若要独立管理，由公司管理员走正常注册流程创建 feishu_config，不在此预置。
+-- （无需 UPDATE 语句，ALTER 后历史记录 feishu_config_id 默认即为 NULL）

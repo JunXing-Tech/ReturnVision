@@ -347,6 +347,12 @@ Content-Type: application/json
 | 1006 | 旧密码错误 |
 | 1007 | 用户名已存在（用户管理用） |
 | 1008 | 绑定凭证（bind_token）已失效或过期，需重新 wx-login |
+| 2004 | 用户未绑定公司，不能录入（feishuConfigId=NULL 时拒绝录入，v2.3 新增） |
+| 2005 | 飞书配置已禁用（v2.3 新增） |
+| 2006 | 飞书应用验证失败（app_id/app_secret 无效，v2.3 新增） |
+| 2007 | 飞书多维表格创建失败（v2.3 新增） |
+| 2008 | 注册码无效/过期/已用尽（v2.3 新增） |
+| 2009 | 飞书写入失败（与 OCR 的 2001 分开，v2.3 新增，改进点 #14） |
 | 401 | 未登录（token 无效或过期） |
 | 403 | 权限不足 |
 
@@ -1071,3 +1077,168 @@ GET /api/reports?days=7
 - return_reason 为空 -> 归到"未标注"
 
 ---
+
+## 八、多租户改造接口（v2.3 新增）
+
+> 关联：[docs/14-多租户改造方案.md](./14-多租户改造方案.md)
+> 状态：📋 文档先行（2026-07-31），待编码
+> 数据隔离：sys_user / return_records 表由租户插件自动加 feishu_config_id 条件，接口层无需手动过滤
+
+### 8.1 接口列表
+
+#### 8.1.1 注册接口（公开）
+
+| 方法 | 路径 | 鉴权 | 说明 |
+|------|------|------|------|
+| POST | /api/auth/register/admin | ❌ 公开 | 公司管理员注册（用户名/密码/公司名/飞书 app_id/app_secret，系统验证+自动建表） |
+| POST | /api/auth/register/staff | ❌ 公开 | 普通用户注册（用户名/密码/注册码） |
+
+#### 8.1.2 PC 端管理接口
+
+| 方法 | 路径 | 鉴权 | 说明 |
+|------|------|------|------|
+| GET | /api/admin/feishu-config | ADMIN | 飞书配置列表（公司 ADMIN 只看自己，平台 ADMIN 看所有） |
+| PUT | /api/admin/feishu-config/{id} | 平台 ADMIN | 修改飞书配置（更新时清 token 缓存） |
+| DELETE | /api/admin/feishu-config/{id} | 平台 ADMIN | 禁用飞书配置（status=disabled） |
+| POST | /api/admin/register-code | 公司 ADMIN | 生成注册码（绑自己公司 feishu_config_id） |
+| GET | /api/admin/register-code | 公司 ADMIN | 查看注册码列表 |
+| DELETE | /api/admin/register-code/{id} | 公司 ADMIN | 撤销注册码（status=revoked） |
+
+#### 8.1.3 现有接口改动
+
+| 接口 | 改动 |
+|------|------|
+| /api/admin/users | 由租户插件自动加 feishu_config_id 过滤（公司 ADMIN 只看自己公司） |
+| /api/admin/users POST | 公司 ADMIN 可直接创建员工（feishu_config_id=自己的，由 MetaObjectHandler 自动填充） |
+| /api/records | 由租户插件自动加 feishu_config_id 过滤（STAFF 看自己 created_by，ADMIN 看本公司） |
+| /api/confirm | confirmSingle 按记录 feishu_config_id 查凭证（不是当前用户的） |
+
+### 8.2 公司管理员注册
+
+```
+POST /api/auth/register/admin
+```
+
+**请求**：
+```json
+{
+  "username": "company_admin",
+  "password": "admin12345",
+  "org_name": "某某科技有限公司",
+  "app_id": "cli_xxxxx",
+  "app_secret": "yyyyyyyy"
+}
+```
+
+**后端三步验证**（详见 docs/14 §3.6.1）：
+1. 用 app_id/app_secret 调飞书 API 换 tenant_access_token，验证凭证有效（失败返回 2006）
+2. 用 tenant_access_token 自动创建多维表格 + 14 个标准字段（失败返回 2007）
+3. 验证通过后创建 feishu_config（AES 加密 app_secret）+ sys_user（role=ADMIN, feishu_config_id）
+
+**响应（成功）**：
+```json
+{
+  "code": 0,
+  "message": "注册成功",
+  "data": { "user_id": 101, "org_name": "某某科技有限公司" }
+}
+```
+
+**响应（失败）**：见 §8.5 错误码 2006/2007
+
+**安全**：注册接口限流（RegisterRateLimiter，IP+小时）+ 飞书凭证探测防护（FeishuVerifyRateLimiter，失败 5 次封锁 1 小时）。
+
+### 8.3 普通用户注册
+
+```
+POST /api/auth/register/staff
+```
+
+**请求**：
+```json
+{
+  "username": "warehouse_staff",
+  "password": "staff12345",
+  "register_code": "AB3XK9YZ"
+}
+```
+
+**后端校验**（详见 docs/14 §3.6.2）：
+- 注册码未过期/未用尽/未失效 -> 拿 feishu_config_id
+- 创建 sys_user（role=STAFF, feishu_config_id）
+- 注册码 used_count++
+
+**响应（成功）**：
+```json
+{ "code": 0, "message": "注册成功", "data": { "user_id": 102 } }
+```
+
+**响应（失败）**：见 §8.5 错误码 2008
+
+### 8.4 飞书配置与注册码管理
+
+#### 8.4.1 查询飞书配置列表
+
+```
+GET /api/admin/feishu-config
+```
+
+**数据范围**：
+- 平台 ADMIN（feishu_config_id=null）：看所有公司配置
+- 公司 ADMIN（feishu_config_id=非空）：只看自己公司配置
+
+**响应**：
+```json
+{
+  "code": 0,
+  "data": [
+    {
+      "id": 1,
+      "org_name": "某某科技",
+      "app_id": "cli_xxxxx",
+      "app_secret": "******",
+      "aes_key_version": 1,
+      "status": "active",
+      "created_at": "2026-07-31 10:00:00"
+    }
+  ]
+}
+```
+
+> app_secret 永不返回明文，固定返回 `"******"` 占位。
+
+#### 8.4.2 生成注册码
+
+```
+POST /api/admin/register-code
+```
+
+**请求**：
+```json
+{ "max_uses": 10, "expires_at": "2026-08-31 23:59:59" }
+```
+
+**响应**：
+```json
+{
+  "code": 0,
+  "data": { "id": 1, "code": "AB3XK9YZ", "max_uses": 10, "expires_at": "2026-08-31 23:59:59" }
+}
+```
+
+> 注册码绑当前公司 ADMIN 的 feishu_config_id（不需前端传）。
+
+### 8.5 错误码（2.8 节补充）
+
+在 §2.8 错误码定义表追加：
+
+| 错误码 | 说明 |
+|--------|------|
+| 2004 | 用户未绑定公司，不能录入（feishuConfigId=NULL 时拒绝录入） |
+| 2005 | 飞书配置已禁用 |
+| 2006 | 飞书应用验证失败（app_id/app_secret 无效） |
+| 2007 | 飞书多维表格创建失败 |
+| 2008 | 注册码无效/过期/已用尽 |
+| 2009 | 飞书写入失败（与 OCR 的 2001 分开，便于前端区分错误来源） |
+
+> 错误码 2001 原为 FeishuApiError 和 OCR 失败共用，v2.3 起飞书写入失败改用 2009，2001 专用于 OCR 失败（改进点 #14）。
