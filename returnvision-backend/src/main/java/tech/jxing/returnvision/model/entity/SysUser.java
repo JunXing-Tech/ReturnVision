@@ -38,6 +38,10 @@ public class SysUser {
     @TableField("wx_openid")
     private String wxOpenid;                  // 微信小程序 openid（自助绑定用，可为空）
 
+    /** 多租户：所属飞书配置（NULL=平台级/未绑公司，非空=绑某公司） */
+    @TableField("feishu_config_id")
+    private Long feishuConfigId;              // 所属飞书配置ID
+
     @TableField("status")
     private String status;                    // active/disabled
 

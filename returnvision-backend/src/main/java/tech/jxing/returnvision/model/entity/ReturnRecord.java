@@ -59,6 +59,10 @@ public class ReturnRecord {
     @TableField("updated_by")
     private Long updatedBy;                // 最后修改者user_id
 
+    /** 多租户：所属飞书配置（NULL=平台级，非空=某公司；confirm 按此查凭证，不是当前用户的） */
+    @TableField("feishu_config_id")
+    private Long feishuConfigId;           // 所属飞书配置ID
+
     @TableField("return_date")
     private LocalDate returnDate;          // 退货日期
 
