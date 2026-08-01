@@ -50,16 +50,17 @@ public class JwtUtil {
      * 生成 access token
      *
      * 实现步骤：
-     *   1. 构造 payload（sub=username, userId, roles, type=access）
+     *   1. 构造 payload（sub=username, userId, roles, feishuConfigId, type=access）
      *   2. 设置签发时间和过期时间
      *   3. 用 HS256 签名
      *
-     * @param userId   用户ID
-     * @param username 用户名
-     * @param roles    角色列表（如 ["ADMIN"]）
+     * @param userId         用户ID
+     * @param username       用户名
+     * @param roles          角色列表（如 ["ADMIN"]）
+     * @param feishuConfigId 所属飞书配置ID（null=平台级，多租户用）
      * @return access token 字符串
      */
-    public String generateAccessToken(Long userId, String username, List<String> roles) {
+    public String generateAccessToken(Long userId, String username, List<String> roles, Long feishuConfigId) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + accessTokenExpiration);
 
@@ -68,11 +69,22 @@ public class JwtUtil {
                 .subject(username)
                 .claim("userId", userId)
                 .claim("roles", roles)
+                .claim("feishuConfigId", feishuConfigId)
                 .claim("type", "access")
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(key)
                 .compact();
+    }
+
+    /**
+     * 生成 access token（兼容旧签名，feishuConfigId 默认 null，平台级）
+     *
+     * @deprecated 多租户场景应使用带 feishuConfigId 的重载方法
+     */
+    @Deprecated
+    public String generateAccessToken(Long userId, String username, List<String> roles) {
+        return generateAccessToken(userId, username, roles, null);
     }
 
     /**

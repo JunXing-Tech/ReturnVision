@@ -19,7 +19,9 @@ import tech.jxing.returnvision.common.alert.AlertLevel;
 import tech.jxing.returnvision.common.alert.AlertService;
 import tech.jxing.returnvision.common.exception.BizException;
 import tech.jxing.returnvision.common.exception.DuplicateWaybillError;
+import tech.jxing.returnvision.feishu.FeishuConfigService;
 import tech.jxing.returnvision.feishu.FeishuService;
+import tech.jxing.returnvision.model.entity.FeishuConfig;
 import tech.jxing.returnvision.model.entity.ReturnRecord;
 import tech.jxing.returnvision.model.mapper.ReturnRecordMapper;
 import tech.jxing.returnvision.security.AuthUser;
@@ -68,6 +70,7 @@ public class UploadController {
     private final ValidatorService validatorService;
     private final WaybillValidator waybillValidator;
     private final FeishuService feishuService;
+    private final FeishuConfigService feishuConfigService;
     private final ReturnRecordMapper recordMapper;
     private final ObjectMapper objectMapper;
     private final AlertService alertService;
@@ -100,6 +103,7 @@ public class UploadController {
                             ValidatorService validatorService,
                             WaybillValidator waybillValidator,
                             FeishuService feishuService,
+                            FeishuConfigService feishuConfigService,
                             ReturnRecordMapper recordMapper,
                             ObjectMapper objectMapper,
                             AlertService alertService,
@@ -110,6 +114,7 @@ public class UploadController {
         this.validatorService = validatorService;
         this.waybillValidator = waybillValidator;
         this.feishuService = feishuService;
+        this.feishuConfigService = feishuConfigService;
         this.recordMapper = recordMapper;
         this.objectMapper = objectMapper;
         this.alertService = alertService;
@@ -720,10 +725,16 @@ public class UploadController {
     /**
      * 单条确认写入飞书（已加载记录的版本）
      *
-     * 实现步骤：
+     * 实现步骤（v2.3 多租户改造）：
      *   1. 更新状态为confirmed
-     *   2. 写入飞书多维表格
-     *   3. 更新状态为synced，回填feishu_record_id
+     *   2. 按记录的 feishu_config_id 查凭证（不是当前用户的，防换公司写错表；null 走 .env 默认兜底）
+     *   3. 写入飞书多维表格
+     *   4. 写入成功：更新状态为synced，回填feishu_record_id
+     *   5. 写入失败/凭证未配置：更新状态为failed，不回填（改进点 #1/#15，原版无条件置 synced 是假成功）
+     *
+     * @param recordId 记录ID
+     * @param record   已加载的记录
+     * @return 飞书记录ID（失败时为 null）
      */
     private String confirmSingle(Long recordId, ReturnRecord record) {
         // 步骤1：更新状态为confirmed
@@ -732,16 +743,38 @@ public class UploadController {
         recordMapper.updateById(record);
         log.info("[确认] 记录已确认，record_id={}", recordId);
 
-        // 步骤2：写入飞书
-        Map<String, Object> feishuData = convertRecordToMap(record);
-        String feishuRecordId = feishuService.writeRecord(feishuData, record.getImageUrl());
+        // 步骤2：按记录的 feishu_config_id 查凭证（防换公司写错表；null 走 .env 默认）
+        Long configId = record.getFeishuConfigId();
+        FeishuConfig config = feishuConfigService.resolveConfig(configId);
 
-        // 步骤3：更新状态为synced
-        record.setFeishuRecordId(feishuRecordId);
-        record.setStatus("synced");
-        record.setSyncedAt(LocalDateTime.now());
-        recordMapper.updateById(record);
-        log.info("[确认] 飞书写入完成，record_id={}, feishu_record_id={}", recordId, feishuRecordId);
+        // 步骤3：写入飞书
+        Map<String, Object> feishuData = convertRecordToMap(record);
+        String feishuRecordId;
+        try {
+            feishuRecordId = feishuService.writeRecord(feishuData, record.getImageUrl(), config);
+        } catch (Exception e) {
+            // 改进点 #1：飞书写入失败，状态置 failed，记录错误信息，便于列表标红+重试
+            log.error("[确认] 飞书写入异常，record_id={}, configId={}", recordId, configId, e);
+            record.setStatus("failed");
+            record.setRemark("飞书写入失败：" + e.getMessage());
+            recordMapper.updateById(record);
+            throw e;  // 仍向上抛，由全局异常处理器返回 2009 给前端
+        }
+
+        // 步骤4：写入成功（feishuRecordId 非空）-> synced
+        if (feishuRecordId != null) {
+            record.setFeishuRecordId(feishuRecordId);
+            record.setStatus("synced");
+            record.setSyncedAt(LocalDateTime.now());
+            recordMapper.updateById(record);
+            log.info("[确认] 飞书写入完成，record_id={}, feishu_record_id={}", recordId, feishuRecordId);
+        } else {
+            // 改进点 #15：凭证未配置返回 null，不再无条件置 synced（假成功），改为 failed + 标注原因
+            log.warn("[确认] 飞书凭证未配置，写入跳过，record_id={}, configId={}", recordId, configId);
+            record.setStatus("failed");
+            record.setRemark("飞书凭证未配置，写入跳过");
+            recordMapper.updateById(record);
+        }
 
         return feishuRecordId;
     }
@@ -1013,6 +1046,8 @@ public class UploadController {
         if (currentUser != null) {
             record.setCreatedBy(currentUser.getUserId());
             record.setUpdatedBy(currentUser.getUserId());
+            // 多租户：记录归属当前用户的公司（null=平台级，confirm 时按此查凭证）
+            record.setFeishuConfigId(currentUser.getFeishuConfigId());
         }
         record.setSenderAddress(getString(ocrData, "sender_address"));
         record.setExpressCompany(getString(ocrData, "express_company"));

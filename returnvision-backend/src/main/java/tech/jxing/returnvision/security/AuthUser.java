@@ -28,13 +28,22 @@ public class AuthUser implements UserDetails {
     private final String passwordHash;
     private final boolean active;
     private final List<String> roles;
+    /** 多租户：所属飞书配置ID（null=平台级，非空=绑某公司；从 JWT claim 读取） */
+    private final Long feishuConfigId;
 
     public AuthUser(Long userId, String username, String passwordHash, boolean active, List<String> roles) {
+        this(userId, username, passwordHash, active, roles, null);
+    }
+
+    /** 多租户：带 feishuConfigId 的构造方法（JwtAuthenticationFilter 解析 token 后构造） */
+    public AuthUser(Long userId, String username, String passwordHash, boolean active,
+                    List<String> roles, Long feishuConfigId) {
         this.userId = userId;
         this.username = username;
         this.passwordHash = passwordHash;
         this.active = active;
         this.roles = roles;
+        this.feishuConfigId = feishuConfigId;
     }
 
     /**

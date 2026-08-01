@@ -61,6 +61,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String username = claims.getSubject();
             @SuppressWarnings("unchecked")
             List<String> roles = claims.get("roles", List.class);
+            // 多租户：从 token 解析 feishuConfigId（null=平台级，旧 token 无此 claim 时为 null）
+            Long feishuConfigId = claims.get("feishuConfigId", Long.class);
 
             // 步骤3：校验关键字段，任一缺失则不设置 SecurityContext
             if (userId == null || username == null || roles == null) {
@@ -70,15 +72,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // 步骤3.1：roles 为空列表告警——这是"管理员触发 AuthorizationDeniedException"的最可能根因
+            // 步骤3.1：roles 为空列表告警--这是"管理员触发 AuthorizationDeniedException"的最可能根因
             // 场景：sys_user_role 关联缺失 / sys_role 表无对应记录 / AdminInitializer 启动时 ADMIN 角色未预置
             if (roles.isEmpty()) {
                 log.warn("[JWT] token 中 roles 为空列表：userId={}, username={}, path={} {}（请检查 sys_user_role 关联）",
                         userId, username, request.getMethod(), request.getRequestURI());
             }
 
-            // 步骤4：构造 AuthUser 设到 SecurityContext
-            AuthUser authUser = new AuthUser(userId, username, null, true, roles);
+            // 步骤4：构造 AuthUser 设到 SecurityContext（带 feishuConfigId，多租户用）
+            AuthUser authUser = new AuthUser(userId, username, null, true, roles, feishuConfigId);
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(authUser, null, authUser.getAuthorities());
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));

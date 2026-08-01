@@ -108,8 +108,8 @@ public class AuthService {
         // 步骤3：查角色
         List<String> roles = queryUserRoleCodes(user.getId());
 
-        // 步骤4：生成 token
-        String accessToken = jwtUtil.generateAccessToken(user.getId(), user.getUsername(), roles);
+        // 步骤4：生成 token（带 feishuConfigId，多租户用）
+        String accessToken = jwtUtil.generateAccessToken(user.getId(), user.getUsername(), roles, user.getFeishuConfigId());
         String refreshToken = generateAndStoreRefreshToken(user.getId());
 
         // 步骤5：更新最后登录时间
@@ -236,7 +236,7 @@ public class AuthService {
         }
 
         List<String> roles = queryUserRoleCodes(user.getId());
-        String accessToken = jwtUtil.generateAccessToken(user.getId(), user.getUsername(), roles);
+        String accessToken = jwtUtil.generateAccessToken(user.getId(), user.getUsername(), roles, user.getFeishuConfigId());
         String refreshToken = generateAndStoreRefreshToken(user.getId());
 
         user.setLastLoginAt(LocalDateTime.now());
