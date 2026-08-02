@@ -76,6 +76,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/refresh").permitAll()
                 .requestMatchers("/api/auth/feishu/url").permitAll()
                 .requestMatchers("/api/auth/feishu/callback").permitAll()
+                .requestMatchers("/api/auth/register/**").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/dashboard/**").hasAnyRole("SUPERVISOR", "ADMIN")
                 .requestMatchers("/api/**").authenticated()

@@ -277,4 +277,28 @@ public class FeishuService {
 
     /** token 缓存条目 */
     private record TokenCache(String token, long expireAt) {}
+
+    /**
+     * 飞书多维表格标准字段定义（14 个，供注册时建表 + writeRecord 写入对齐）
+     *
+     * 列名与 writeRecord 中 fields.put 的中文列名一一对应。
+     */
+    public static java.util.List<Map<String, Object>> buildStandardFields() {
+        return java.util.List.of(
+                Map.of("field_name", "运单号", "type", 1),
+                Map.of("field_name", "收件人姓名", "type", 1),
+                Map.of("field_name", "收件人电话", "type", 1),
+                Map.of("field_name", "收件人地址", "type", 1),
+                Map.of("field_name", "寄件人姓名", "type", 1),
+                Map.of("field_name", "寄件人电话", "type", 1),
+                Map.of("field_name", "寄件人地址", "type", 1),
+                Map.of("field_name", "快递公司", "type", 1),
+                Map.of("field_name", "托寄物", "type", 1),
+                Map.of("field_name", "退货原因", "type", 1),
+                Map.of("field_name", "退货分类", "type", 1),
+                Map.of("field_name", "图片链接", "type", 15),
+                Map.of("field_name", "退货日期", "type", 5),
+                Map.of("field_name", "记录ID", "type", 1)
+        );
+    }
 }

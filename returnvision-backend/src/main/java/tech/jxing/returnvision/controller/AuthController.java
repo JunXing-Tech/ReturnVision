@@ -9,9 +9,15 @@ import tech.jxing.returnvision.audit.AuditLog;
 import tech.jxing.returnvision.common.ResponseResult;
 import tech.jxing.returnvision.common.exception.AuthError;
 import tech.jxing.returnvision.common.exception.BizException;
+import tech.jxing.returnvision.common.ratelimit.RegisterRateLimiter;
+import tech.jxing.returnvision.controller.dto.AdminRegisterRequest;
+import tech.jxing.returnvision.controller.dto.StaffRegisterRequest;
 import tech.jxing.returnvision.security.AuthUser;
 import tech.jxing.returnvision.security.FeishuOAuthService;
 import tech.jxing.returnvision.service.AuthService;
+import tech.jxing.returnvision.service.RegisterService;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -40,10 +46,17 @@ public class AuthController {
 
     private final AuthService authService;
     private final FeishuOAuthService feishuOAuthService;
+    private final RegisterService registerService;
+    private final RegisterRateLimiter registerRateLimiter;
 
-    public AuthController(AuthService authService, FeishuOAuthService feishuOAuthService) {
+    public AuthController(AuthService authService,
+                          FeishuOAuthService feishuOAuthService,
+                          RegisterService registerService,
+                          RegisterRateLimiter registerRateLimiter) {
         this.authService = authService;
         this.feishuOAuthService = feishuOAuthService;
+        this.registerService = registerService;
+        this.registerRateLimiter = registerRateLimiter;
     }
 
     /**
@@ -255,6 +268,72 @@ public class AuthController {
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);
         return ResponseResult.success(result);
+    }
+
+    /**
+     * 公司管理员注册
+     *
+     * 业务流程（docs/14 §3.6.1）：
+     *   1. 限流检查（IP+小时）
+     *   2. 调 RegisterService.registerAdmin（飞书验证+建表+创建配置+创建用户）
+     *   3. 返回 user_id + org_name
+     */
+    @PostMapping("/register/admin")
+    public ResponseResult registerAdmin(@RequestBody AdminRegisterRequest request,
+                                        HttpServletRequest httpRequest) {
+        // 步骤1：限流
+        String ip = getClientIp(httpRequest);
+        if (!registerRateLimiter.tryAcquire(ip)) {
+            throw new BizException(1006, "注册过于频繁，请稍后再试");
+        }
+
+        log.info("[注册] 管理员注册请求，username={}, orgName={}, ip={}",
+                request.getUsername(), request.getOrgName(), ip);
+
+        // 步骤2：注册
+        Map<String, Object> result = registerService.registerAdmin(request);
+
+        // 步骤3：返回
+        return ResponseResult.success(result);
+    }
+
+    /**
+     * 普通用户注册
+     *
+     * 业务流程（docs/14 §3.6.2）：
+     *   1. 限流检查（IP+小时）
+     *   2. 调 RegisterService.registerStaff（注册码校验+创建用户）
+     *   3. 返回 user_id
+     */
+    @PostMapping("/register/staff")
+    public ResponseResult registerStaff(@RequestBody StaffRegisterRequest request,
+                                        HttpServletRequest httpRequest) {
+        // 步骤1：限流
+        String ip = getClientIp(httpRequest);
+        if (!registerRateLimiter.tryAcquire(ip)) {
+            throw new BizException(1006, "注册过于频繁，请稍后再试");
+        }
+
+        log.info("[注册] 员工注册请求，username={}, ip={}", request.getUsername(), ip);
+
+        // 步骤2：注册
+        Map<String, Object> result = registerService.registerStaff(request);
+
+        // 步骤3：返回
+        return ResponseResult.success(result);
+    }
+
+    /**
+     * 获取客户端 IP（优先取 X-Forwarded-For，兼容反向代理）
+     */
+    private String getClientIp(HttpServletRequest request) {
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        } else {
+            ip = ip.split(",")[0].trim();
+        }
+        return ip;
     }
 
     // ==================== 内部方法 ====================
