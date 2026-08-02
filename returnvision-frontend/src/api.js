@@ -77,9 +77,19 @@ export default {
 
   /**
    * 获取飞书 OAuth 授权 URL
+   * @param {number|null} configId 飞书配置ID（null=平台级，公司用户传所属公司configId）
    */
-  getFeishuAuthUrl() {
-    return api.get('/auth/feishu/url');
+  getFeishuAuthUrl(configId) {
+    const params = {};
+    if (configId) params.config_id = configId;
+    return api.get('/auth/feishu/url', { params });
+  },
+
+  /**
+   * 查询可选公司列表（登录页选公司用）
+   */
+  getOrgs() {
+    return api.get('/auth/orgs');
   },
 
   /**

@@ -41,6 +41,15 @@
         <!-- 分隔线 -->
         <div class="divider"><span>或</span></div>
 
+        <!-- 公司选择（多租户飞书登录，选公司后用该公司的飞书应用） -->
+        <div v-if="orgs.length > 0" class="form-field">
+          <label class="form-label">所属公司（飞书登录需选择）</label>
+          <select v-model="selectedConfigId" class="form-input">
+            <option :value="null">平台默认</option>
+            <option v-for="org in orgs" :key="org.config_id" :value="org.config_id">{{ org.org_name }}</option>
+          </select>
+        </div>
+
         <!-- 飞书登录 -->
         <button class="feishu-btn" @click="handleFeishuLogin" :disabled="loading">
           <svg class="feishu-icon" viewBox="0 0 24 24" fill="currentColor">
@@ -122,11 +131,24 @@
 
 <script setup>
 // 步骤4：组件状态与登录逻辑
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import api from '../api';
 import { useAuth } from '../composables/useAuth';
 
 const emit = defineEmits(['login-success', 'go-register']);
+
+// 多租户：可选公司列表 + 选中的 configId（null=平台默认）
+const orgs = ref([]);
+const selectedConfigId = ref(null);
+
+onMounted(async () => {
+  try {
+    const resp = await api.getOrgs();
+    orgs.value = resp.data.data.orgs || [];
+  } catch (e) {
+    // 加载失败不阻塞登录（降级为平台默认）
+  }
+});
 
 const setError = (msg) => { errorMsg.value = msg; };
 defineExpose({ setError });
@@ -172,7 +194,7 @@ const handleFeishuLogin = async () => {
   loading.value = true;
   errorMsg.value = '';
   try {
-    const resp = await api.getFeishuAuthUrl();
+    const resp = await api.getFeishuAuthUrl(selectedConfigId.value);
     const { auth_url } = resp.data.data;
     window.location.href = auth_url;
   } catch (err) {

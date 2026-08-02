@@ -12,6 +12,8 @@ import tech.jxing.returnvision.common.exception.BizException;
 import tech.jxing.returnvision.common.ratelimit.RegisterRateLimiter;
 import tech.jxing.returnvision.controller.dto.AdminRegisterRequest;
 import tech.jxing.returnvision.controller.dto.StaffRegisterRequest;
+import tech.jxing.returnvision.model.entity.FeishuConfig;
+import tech.jxing.returnvision.model.mapper.FeishuConfigMapper;
 import tech.jxing.returnvision.security.AuthUser;
 import tech.jxing.returnvision.security.FeishuOAuthService;
 import tech.jxing.returnvision.service.AuthService;
@@ -19,6 +21,9 @@ import tech.jxing.returnvision.service.RegisterService;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -48,15 +53,18 @@ public class AuthController {
     private final FeishuOAuthService feishuOAuthService;
     private final RegisterService registerService;
     private final RegisterRateLimiter registerRateLimiter;
+    private final FeishuConfigMapper feishuConfigMapper;
 
     public AuthController(AuthService authService,
                           FeishuOAuthService feishuOAuthService,
                           RegisterService registerService,
-                          RegisterRateLimiter registerRateLimiter) {
+                          RegisterRateLimiter registerRateLimiter,
+                          FeishuConfigMapper feishuConfigMapper) {
         this.authService = authService;
         this.feishuOAuthService = feishuOAuthService;
         this.registerService = registerService;
         this.registerRateLimiter = registerRateLimiter;
+        this.feishuConfigMapper = feishuConfigMapper;
     }
 
     /**
@@ -183,6 +191,38 @@ public class AuthController {
     }
 
     /**
+     * 查询可选公司列表（登录页飞书登录前选择公司用）
+     *
+     * 业务流程：
+     *   1. 查 feishu_config 中 status=active 的公司
+     *   2. 返回 configId + orgName（不含 app_secret 等敏感信息）
+     *   3. 平台级用户不传 config_id 走 .env 默认
+     */
+    @GetMapping("/orgs")
+    public ResponseResult<Map<String, Object>> listOrgs() {
+        // 步骤1：查 active 的飞书配置
+        java.util.List<FeishuConfig> configs = feishuConfigMapper.selectList(
+                new LambdaQueryWrapper<FeishuConfig>()
+                        .eq(FeishuConfig::getStatus, "active")
+                        .orderByAsc(FeishuConfig::getOrgName));
+
+        // 步骤2：组装（仅 configId + orgName，不回显 app_secret/app_id）
+        java.util.List<Map<String, Object>> orgs = new ArrayList<>();
+        for (FeishuConfig config : configs) {
+            Map<String, Object> org = new HashMap<>();
+            org.put("config_id", config.getId());
+            org.put("org_name", config.getOrgName());
+            orgs.add(org);
+        }
+
+        // 步骤3：返回
+        Map<String, Object> result = new HashMap<>();
+        result.put("orgs", orgs);
+        result.put("has_platform", feishuOAuthService.isConfigured());
+        return ResponseResult.success(result);
+    }
+
+    /**
      * 获取飞书 OAuth 授权 URL
      *
      * 业务流程：
@@ -191,12 +231,14 @@ public class AuthController {
      *   3. 返回 auth_url + state
      */
     @GetMapping("/feishu/url")
-    public ResponseResult<Map<String, Object>> feishuAuthUrl() {
-        // 步骤1：生成 state
-        String state = UUID.randomUUID().toString().replace("-", "");
+    public ResponseResult<Map<String, Object>> feishuAuthUrl(
+            @RequestParam(value = "config_id", required = false) Long configId) {
+        // 步骤1：生成 state（格式：random:configId，回调时解析出 configId 用对应公司凭证）
+        String random = UUID.randomUUID().toString().replace("-", "");
+        String state = configId != null ? random + ":" + configId : random;
 
-        // 步骤2：生成授权 URL
-        String authUrl = feishuOAuthService.generateAuthUrl(state);
+        // 步骤2：用 configId 对应公司的飞书应用生成授权 URL
+        String authUrl = feishuOAuthService.generateAuthUrl(state, configId);
 
         // 步骤3：返回
         Map<String, Object> result = new HashMap<>();
@@ -218,15 +260,19 @@ public class AuthController {
     public ResponseResult<Map<String, Object>> feishuCallback(@RequestBody Map<String, String> request) {
         // 步骤1：取参数
         String code = request.get("code");
+        String state = request.get("state");
         log.info("[鉴权] 飞书 OAuth 回调进入，code 长度={}", code == null ? 0 : code.length());
         if (code == null || code.isEmpty()) {
             log.warn("[鉴权] 飞书回调 code 为空，request keys={}", request.keySet());
             throw new BizException(1004, "飞书授权码不能为空");
         }
 
-        // 步骤2-3：登录并返回
+        // 步骤2：从 state 解析 configId（格式 random:configId），用对应公司凭证登录
+        Long configId = parseConfigIdFromState(state);
+
+        // 步骤3：登录并返回
         try {
-            Map<String, Object> result = authService.feishuLogin(code);
+            Map<String, Object> result = authService.feishuLogin(code, configId);
             log.info("[鉴权] 飞书 OAuth 登录成功，username={}", result.get("username"));
             return ResponseResult.success(result);
         } catch (BizException e) {
@@ -236,6 +282,28 @@ public class AuthController {
         } catch (Exception e) {
             log.error("[鉴权] 飞书 OAuth 登录异常", e);
             throw new BizException(1004, "飞书授权失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 从 state 解析 configId（格式 random:configId）
+     *
+     * @param state 状态串（无冒号=平台级，有冒号=公司级）
+     * @return configId（null=平台级）
+     */
+    private Long parseConfigIdFromState(String state) {
+        if (state == null || state.isEmpty()) {
+            return null;
+        }
+        int idx = state.indexOf(':');
+        if (idx < 0 || idx == state.length() - 1) {
+            return null;
+        }
+        try {
+            return Long.parseLong(state.substring(idx + 1));
+        } catch (NumberFormatException e) {
+            log.warn("[鉴权] state 中 configId 解析失败：{}", state);
+            return null;
         }
     }
 

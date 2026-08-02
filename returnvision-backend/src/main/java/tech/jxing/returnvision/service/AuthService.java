@@ -213,8 +213,18 @@ public class AuthService {
      * @return Map 含 access_token / refresh_token / expires_in / user
      */
     public Map<String, Object> feishuLogin(String code) throws Exception {
-        // 步骤1：换取飞书用户信息
-        Map<String, String> feishuInfo = feishuOAuthService.getUserInfoByCode(code);
+        return feishuLogin(code, null);
+    }
+
+    /**
+     * 飞书 OAuth 登录（多租户，按 configId 用对应公司飞书应用凭证）
+     *
+     * @param code     飞书授权码
+     * @param configId 飞书配置ID（null=平台级）
+     */
+    public Map<String, Object> feishuLogin(String code, Long configId) throws Exception {
+        // 步骤1：换取飞书用户信息（用 configId 对应公司凭证）
+        Map<String, String> feishuInfo = feishuOAuthService.getUserInfoByCode(code, configId);
         if (feishuInfo == null) {
             throw new AuthError(1004, "飞书授权失败");
         }
@@ -233,6 +243,16 @@ public class AuthService {
         // 步骤4：校验 + 生成 token
         if ("disabled".equals(user.getStatus())) {
             throw AuthError.accountDisabled();
+        }
+
+        // 步骤4.1：多租户安全校验--用户所属公司必须与请求的 configId 一致
+        // 防止用户用公司A的飞书应用登录但实际是公司B的用户（跨公司登录攻击）
+        // 规则：请求 configId 非空时，user.feishuConfigId 必须等于 configId
+        Long userConfigId = user.getFeishuConfigId();
+        if (configId != null && !configId.equals(userConfigId)) {
+            log.warn("[鉴权] 飞书登录跨公司拒绝：feishu_user_id={}, 请求configId={}, 用户configId={}",
+                    feishuUserId, configId, userConfigId);
+            throw new AuthError(1004, "飞书账号与所选公司不匹配，请选择您所属的公司");
         }
 
         List<String> roles = queryUserRoleCodes(user.getId());
