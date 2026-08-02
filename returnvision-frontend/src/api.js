@@ -414,4 +414,66 @@ export default {
   getReport(days = 7) {
     return api.get('/reports', { params: { days } });
   },
+
+  // ==================== 多租户接口（v2.3 新增） ====================
+
+  /**
+   * 公司管理员注册（公开）
+   */
+  registerAdmin(username, password, orgName, appId, appSecret) {
+    return api.post('/auth/register/admin', {
+      username, password, org_name: orgName, app_id: appId, app_secret: appSecret,
+    });
+  },
+
+  /**
+   * 普通用户注册（公开）
+   */
+  registerStaff(username, password, registerCode) {
+    return api.post('/auth/register/staff', {
+      username, password, register_code: registerCode,
+    });
+  },
+
+  /**
+   * 查询飞书配置列表（公司 ADMIN 只看自己，平台 ADMIN 看全部）
+   */
+  listFeishuConfigs() {
+    return api.get('/admin/feishu-config');
+  },
+
+  /**
+   * 修改飞书配置（仅平台 ADMIN）
+   */
+  updateFeishuConfig(id, data) {
+    return api.put(`/admin/feishu-config/${id}`, data);
+  },
+
+  /**
+   * 禁用飞书配置（仅平台 ADMIN）
+   */
+  disableFeishuConfig(id) {
+    return api.delete(`/admin/feishu-config/${id}`);
+  },
+
+  /**
+   * 生成注册码（公司 ADMIN，绑自己公司）
+   */
+  createRegisterCode(maxUses, expiresAt) {
+    return api.post('/admin/register-code', { max_uses: maxUses, expires_at: expiresAt });
+  },
+
+  /**
+   * 查询注册码列表（公司 ADMIN）
+   */
+  listRegisterCodes() {
+    return api.get('/admin/register-code');
+  },
+
+  /**
+   * 撤销注册码（公司 ADMIN）
+   */
+  revokeRegisterCode(id) {
+    return api.delete(`/admin/register-code/${id}`);
+  },
 };

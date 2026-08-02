@@ -51,6 +51,9 @@
 
         <!-- 初始密码提示 -->
         <div class="hint">初始账号：admin / admin123（首次登录后请修改密码）</div>
+
+        <!-- 注册入口 -->
+        <div class="register-link">还没有账号？<a href="#" @click.prevent="$emit('go-register')">立即注册</a></div>
       </div>
 
       <!-- 底部产品特性点 -->
@@ -123,7 +126,7 @@ import { ref } from 'vue';
 import api from '../api';
 import { useAuth } from '../composables/useAuth';
 
-const emit = defineEmits(['login-success']);
+const emit = defineEmits(['login-success', 'go-register']);
 
 const setError = (msg) => { errorMsg.value = msg; };
 defineExpose({ setError });
@@ -416,6 +419,21 @@ const handleSkipChangePwd = () => {
   border-radius: var(--radius);
   font-size: 12px;
   text-align: center;
+}
+
+.register-link {
+  text-align: center;
+  font-size: 13px;
+  color: var(--color-text-secondary, #6b7280);
+  margin-top: 12px;
+}
+.register-link a {
+  color: var(--color-primary, #2563eb);
+  text-decoration: none;
+  font-weight: 500;
+}
+.register-link a:hover {
+  text-decoration: underline;
 }
 
 /* 底部产品特性点（3 个横排） */

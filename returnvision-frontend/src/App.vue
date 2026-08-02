@@ -1,6 +1,9 @@
 <template>
+  <!-- 注册页（从登录页跳转） -->
+  <RegisterPanel v-if="view === 'register'" @back-to-login="view = 'login'" />
+
   <!-- 登录页（未认证时显示） -->
-  <LoginPanel v-if="!isAuthenticated" ref="loginPanelRef" @login-success="handleLoginSuccess" />
+  <LoginPanel v-else-if="!isAuthenticated" ref="loginPanelRef" @login-success="handleLoginSuccess" @go-register="view = 'register'" />
 
   <!-- 步骤1：app-shell 网格布局（侧边栏 + 主内容区） -->
   <div v-else class="app-shell">
@@ -87,6 +90,7 @@
       <RecordsPanel v-show="activeTab === 'records'" @editRecord="handleEditRecord" @navigate="activeTab = $event" @refresh="handleRefresh" />
       <UserManagePanel v-show="activeTab === 'users'" />
       <DictPanel v-show="activeTab === 'dict'" />
+      <FeishuConfigPanel v-show="activeTab === 'feishu'" />
       <ReportPanel v-show="activeTab === 'report'" />
       <ProfilePanel v-show="activeTab === 'profile'" />
       <AuditLogPanel v-show="activeTab === 'audit'" />
@@ -110,9 +114,14 @@ import ProfilePanel from './components/ProfilePanel.vue';
 import AuditLogPanel from './components/AuditLogPanel.vue';
 import OcrStatsPanel from './components/OcrStatsPanel.vue';
 import DictPanel from './components/DictPanel.vue';
+import FeishuConfigPanel from './components/FeishuConfigPanel.vue';
 import ReportPanel from './components/ReportPanel.vue';
+import RegisterPanel from './components/RegisterPanel.vue';
 
 const activeTab = ref('dashboard');
+
+// 注册页/登录页切换（未认证时的视图状态）
+const view = ref('login');
 
 // 步骤4.2：鉴权状态
 const { isAuthenticated, user, clear } = useAuth();
@@ -140,6 +149,7 @@ const visibleTabs = computed(() => {
     { key: 'report', label: '退货报表', icon: ChartColumn, roles: ['STAFF', 'SUPERVISOR', 'ADMIN'], group: '业务导航' },
     { key: 'users', label: '用户管理', icon: UserFilled, roles: ['ADMIN'], group: '系统管理' },
     { key: 'dict', label: '退货字典', icon: ClipboardList, roles: ['ADMIN'], group: '系统管理' },
+    { key: 'feishu', label: '飞书配置', icon: ClipboardList, roles: ['ADMIN'], group: '系统管理' },
     { key: 'audit', label: '审计日志', icon: ClipboardList, roles: ['SUPERVISOR', 'ADMIN'], group: '系统管理' },
     { key: 'profile', label: '个人中心', icon: UserCircle, roles: ['STAFF', 'SUPERVISOR', 'ADMIN'], group: '系统管理' },
   ];
